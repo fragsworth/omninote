@@ -10,8 +10,8 @@ than cloning the shared fixture repo would have given.
 """
 import json, subprocess, sys, os, shutil, datetime, random
 
-SP = "/tmp/claude-0/-home-user-fragsworth/fa65092e-a36c-54cb-a144-aeae62d9b67e/scratchpad"
-DESIGN = f"{SP}/design.json"
+SP = "/tmp/claude-0/-home-user-omninote/a4ccc3db-8ff2-59a5-ab24-9df48ed3bbe7/scratchpad"
+DESIGN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "design.json")
 RESULTS = f"{SP}/results"
 WORK = "/tmp/notepad-trials"
 

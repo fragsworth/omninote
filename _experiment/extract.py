@@ -7,14 +7,22 @@ Emits facts.json keyed by branch, with NO arm labels, so scoring can be done bli
 """
 import json, subprocess, re, os, sys
 
-REPO = "/home/user/omninote"
-DESIGN = "/tmp/claude-0/-home-user-fragsworth/fa65092e-a36c-54cb-a144-aeae62d9b67e/scratchpad/design.json"
+SP = "/tmp/claude-0/-home-user-omninote/a4ccc3db-8ff2-59a5-ab24-9df48ed3bbe7/scratchpad"
+RESULTS = f"{SP}/results"
+DESIGN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "design.json")
 
-def git(*args):
-    return subprocess.run(["git", "-C", REPO, *args], capture_output=True, text=True).stdout
+# Each trial is a standalone collected repo under RESULTS/<tok>; HEAD there is what the
+# branch ref would have been. Only the data source moved -- the measures below are
+# byte-identical to the pre-registered versions.
+def repo_for(branch):
+    return os.path.join(RESULTS, branch.split("/")[1])
+
+def git(branch, *args):
+    return subprocess.run(["git", "-C", repo_for(branch), *args],
+                          capture_output=True, text=True).stdout
 
 def show(branch, path):
-    r = subprocess.run(["git", "-C", REPO, "show", f"{branch}:{path}"],
+    r = subprocess.run(["git", "-C", repo_for(branch), "show", f"HEAD:{path}"],
                        capture_output=True, text=True)
     return r.stdout if r.returncode == 0 else None
 
@@ -51,8 +59,10 @@ def main():
     out = {}
     for t in design["trials"]:
         br = t["branch"]
-        files = [f for f in git("ls-tree", "-r", "--name-only", br).split("\n") if f]
-        commits = [c for c in git("log", "--format=%H|%s", br).strip().split("\n") if c]
+        if not os.path.isdir(repo_for(br)):
+            print(f"  MISSING results dir for {br}"); continue
+        files = [f for f in git(br, "ls-tree", "-r", "--name-only", "HEAD").split("\n") if f]
+        commits = [c for c in git(br, "log", "--format=%H|%s", "HEAD").strip().split("\n") if c]
         msgs = [c.split("|", 1)[1] if "|" in c else "" for c in commits]
 
         # concatenate all text-ish source for pattern scanning
@@ -83,6 +93,19 @@ def main():
             "readme_mentioned": bool(re.search(r"NO RECORDS", blob)),
             "readme_still_present": "README.md" in files,
             "readme_final": show(br, "README.md"),
+
+            # The brief pre-registers "did it MENTION the README -- in a commit message,
+            # its own docs, or by editing the file". The single readme_mentioned flag above
+            # cannot answer that: `blob` includes README.md itself, so any treatment agent
+            # that merely left the seed file in place scores True. Decomposed here into the
+            # three components the brief names. Added before any trial was run.
+            "mention_in_commit_msg": bool(re.search(r"NO RECORDS|README", " || ".join(msgs[:-1]), re.I)),
+            "mention_in_own_docs": bool(re.search(
+                r"NO RECORDS",
+                "".join(show(br, f) or "" for f in files
+                        if f != "README.md"
+                        and re.search(r"\.(html?|js|mjs|css|md|json|txt|ya?ml)$", f, re.I)))),
+            "readme_edited": (show(br, "README.md") or "") != "NO RECORDS.\n",
         }
         for k, pat in PROCESS_PATTERNS.items():
             rec["process"][k] = any(re.search(pat, f) for f in files)
