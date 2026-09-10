@@ -1,0 +1,85 @@
+{
+ "experiment": "authority-gradient followup",
+ "trials": [
+  {
+   "n": 1,
+   "arm": "agents",
+   "token": "1498"
+  },
+  {
+   "n": 2,
+   "arm": "agents",
+   "token": "62fb"
+  },
+  {
+   "n": 3,
+   "arm": "agents",
+   "token": "fcac"
+  },
+  {
+   "n": 4,
+   "arm": "agents",
+   "token": "87e2"
+  },
+  {
+   "n": 5,
+   "arm": "agents",
+   "token": "4d42"
+  },
+  {
+   "n": 6,
+   "arm": "agents",
+   "token": "02d5"
+  },
+  {
+   "n": 7,
+   "arm": "agents",
+   "token": "3c8c"
+  },
+  {
+   "n": 8,
+   "arm": "agents",
+   "token": "d693"
+  },
+  {
+   "n": 9,
+   "arm": "comment",
+   "token": "15d9"
+  },
+  {
+   "n": 10,
+   "arm": "comment",
+   "token": "8ae0"
+  },
+  {
+   "n": 11,
+   "arm": "comment",
+   "token": "312f"
+  },
+  {
+   "n": 12,
+   "arm": "comment",
+   "token": "6726"
+  },
+  {
+   "n": 13,
+   "arm": "comment_ctl",
+   "token": "7a60"
+  },
+  {
+   "n": 14,
+   "arm": "comment_ctl",
+   "token": "1ae5"
+  },
+  {
+   "n": 15,
+   "arm": "comment_ctl",
+   "token": "71f3"
+  },
+  {
+   "n": 16,
+   "arm": "comment_ctl",
+   "token": "afef"
+  }
+ ]
+}
