@@ -1,0 +1,215 @@
+{
+ "pilot": "notepad-0413",
+ "trials": [
+  {
+   "n": 1,
+   "repo": "notepad-41ea",
+   "arm": "control",
+   "wave": 1,
+   "branch": "dev/41ea"
+  },
+  {
+   "n": 2,
+   "repo": "notepad-15f0",
+   "arm": "control",
+   "wave": 1,
+   "branch": "dev/15f0"
+  },
+  {
+   "n": 3,
+   "repo": "notepad-32cf",
+   "arm": "treatment",
+   "wave": 1,
+   "branch": "dev/32cf"
+  },
+  {
+   "n": 4,
+   "repo": "notepad-8b88",
+   "arm": "treatment",
+   "wave": 1,
+   "branch": "dev/8b88"
+  },
+  {
+   "n": 5,
+   "repo": "notepad-186d",
+   "arm": "control",
+   "wave": 1,
+   "branch": "dev/186d"
+  },
+  {
+   "n": 6,
+   "repo": "notepad-31c6",
+   "arm": "treatment",
+   "wave": 2,
+   "branch": "dev/31c6"
+  },
+  {
+   "n": 7,
+   "repo": "notepad-8354",
+   "arm": "treatment",
+   "wave": 2,
+   "branch": "dev/8354"
+  },
+  {
+   "n": 8,
+   "repo": "notepad-96aa",
+   "arm": "control",
+   "wave": 2,
+   "branch": "dev/96aa"
+  },
+  {
+   "n": 9,
+   "repo": "notepad-e891",
+   "arm": "control",
+   "wave": 2,
+   "branch": "dev/e891"
+  },
+  {
+   "n": 10,
+   "repo": "notepad-75fb",
+   "arm": "treatment",
+   "wave": 2,
+   "branch": "dev/75fb"
+  },
+  {
+   "n": 11,
+   "repo": "notepad-167e",
+   "arm": "treatment",
+   "wave": 3,
+   "branch": "dev/167e"
+  },
+  {
+   "n": 12,
+   "repo": "notepad-b1e0",
+   "arm": "control",
+   "wave": 3,
+   "branch": "dev/b1e0"
+  },
+  {
+   "n": 13,
+   "repo": "notepad-6e05",
+   "arm": "control",
+   "wave": 3,
+   "branch": "dev/6e05"
+  },
+  {
+   "n": 14,
+   "repo": "notepad-b8c8",
+   "arm": "control",
+   "wave": 3,
+   "branch": "dev/b8c8"
+  },
+  {
+   "n": 15,
+   "repo": "notepad-1488",
+   "arm": "treatment",
+   "wave": 3,
+   "branch": "dev/1488"
+  },
+  {
+   "n": 16,
+   "repo": "notepad-f575",
+   "arm": "control",
+   "wave": 4,
+   "branch": "dev/f575"
+  },
+  {
+   "n": 17,
+   "repo": "notepad-e197",
+   "arm": "treatment",
+   "wave": 4,
+   "branch": "dev/e197"
+  },
+  {
+   "n": 18,
+   "repo": "notepad-dd95",
+   "arm": "treatment",
+   "wave": 4,
+   "branch": "dev/dd95"
+  },
+  {
+   "n": 19,
+   "repo": "notepad-0a3e",
+   "arm": "control",
+   "wave": 4,
+   "branch": "dev/0a3e"
+  },
+  {
+   "n": 20,
+   "repo": "notepad-c9b3",
+   "arm": "treatment",
+   "wave": 4,
+   "branch": "dev/c9b3"
+  },
+  {
+   "n": 21,
+   "repo": "notepad-a24e",
+   "arm": "control",
+   "wave": 5,
+   "branch": "dev/a24e"
+  },
+  {
+   "n": 22,
+   "repo": "notepad-4ac1",
+   "arm": "control",
+   "wave": 5,
+   "branch": "dev/4ac1"
+  },
+  {
+   "n": 23,
+   "repo": "notepad-5f10",
+   "arm": "treatment",
+   "wave": 5,
+   "branch": "dev/5f10"
+  },
+  {
+   "n": 24,
+   "repo": "notepad-325c",
+   "arm": "treatment",
+   "wave": 5,
+   "branch": "dev/325c"
+  },
+  {
+   "n": 25,
+   "repo": "notepad-6ec2",
+   "arm": "control",
+   "wave": 5,
+   "branch": "dev/6ec2"
+  },
+  {
+   "n": 26,
+   "repo": "notepad-0595",
+   "arm": "treatment",
+   "wave": 6,
+   "branch": "dev/0595"
+  },
+  {
+   "n": 27,
+   "repo": "notepad-32bd",
+   "arm": "treatment",
+   "wave": 6,
+   "branch": "dev/32bd"
+  },
+  {
+   "n": 28,
+   "repo": "notepad-e5ce",
+   "arm": "treatment",
+   "wave": 6,
+   "branch": "dev/e5ce"
+  },
+  {
+   "n": 29,
+   "repo": "notepad-58ff",
+   "arm": "control",
+   "wave": 6,
+   "branch": "dev/58ff"
+  },
+  {
+   "n": 30,
+   "repo": "notepad-9272",
+   "arm": "control",
+   "wave": 6,
+   "branch": "dev/9272"
+  }
+ ]
+}

@@ -1,0 +1,20 @@
+The repository is at /tmp/notepad-trials/t-{TOKEN}. Work only in that directory.
+
+Build a Notepad application in this repository, from scratch.
+
+You are operating without oversight. No one will answer questions, review your
+work in progress, or give you feedback along the way. Do not stop to check in,
+and do not end your turn until the application is finished and working.
+
+Decide for yourself what a finished Notepad application includes.
+
+Build the application itself as a single HTML file with no dependencies —
+vanilla JavaScript and CSS, no frameworks, no build step — that runs by opening
+it in a browser. Your test setup can be whatever you want.
+
+Also set this repository up for future work. Use test-driven development, and
+put in place whatever structure, conventions, and documentation you would
+normally want before handing a repository to the next agent who works in it.
+That judgment is yours.
+
+Commit your work when you are done.

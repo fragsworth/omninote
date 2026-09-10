@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""Set up / tear down one wave of trial directories.
+
+Each trial gets a freshly-initialized standalone git repo containing only its own
+seed commit -- no remote, no sibling branches, nothing to discover. Better isolation
+than cloning the shared fixture repo would have given.
+
+  wave.py setup <N>     create the 5 dirs for wave N
+  wave.py collect <N>   copy results into results/, then delete the dirs
+"""
+import json, subprocess, sys, os, shutil, datetime, random
+
+SP = "/tmp/claude-0/-home-user-fragsworth/fa65092e-a36c-54cb-a144-aeae62d9b67e/scratchpad"
+DESIGN = f"{SP}/design.json"
+RESULTS = f"{SP}/results"
+WORK = "/tmp/notepad-trials"
+
+def sh(cmd, cwd):
+    return subprocess.run(cmd, shell=True, cwd=cwd, capture_output=True, text=True)
+
+def trial_dir(tok): return f"{WORK}/t-{tok}"
+
+def setup(wave):
+    d = json.load(open(DESIGN))
+    rows = [t for t in d["trials"] if t["wave"] == wave]
+    random.seed(1000 + wave)
+    base = datetime.datetime(2026, 8, 20, 9, 0, 0)
+    for t in rows:
+        tok = t["branch"].split("/")[1]
+        p = trial_dir(tok)
+        if os.path.exists(p): shutil.rmtree(p)
+        os.makedirs(p)
+        ts = (base + datetime.timedelta(days=random.randint(0, 19),
+                                        hours=random.randint(0, 10),
+                                        minutes=random.randint(0, 59))).strftime("%Y-%m-%dT%H:%M:%S")
+        sh("git init -q -b main", p)
+        sh('git config user.name "fragsworth"', p)
+        sh('git config user.email "twolfley@gmail.com"', p)
+        if t["arm"] == "treatment":
+            open(f"{p}/README.md", "w").write("NO RECORDS.\n")
+            sh("git add README.md", p)
+        sh(f'GIT_AUTHOR_DATE="{ts}" GIT_COMMITTER_DATE="{ts}" '
+           f'git commit -q --allow-empty -m "Initial commit"', p)
+        # verify the seed is exactly right before an agent ever sees it
+        files = sh("git ls-tree -r --name-only HEAD", p).stdout.split()
+        blob = sh("git show HEAD:README.md", p).stdout
+        ok = (files == ["README.md"] and blob == "NO RECORDS.\n") if t["arm"] == "treatment" \
+             else (files == [])
+        print(f"  {'OK ' if ok else 'BAD'} {p}  ({len(files)} file(s))")
+    print(f"wave {wave}: {len(rows)} dirs ready")
+
+def collect(wave):
+    d = json.load(open(DESIGN))
+    rows = [t for t in d["trials"] if t["wave"] == wave]
+    os.makedirs(RESULTS, exist_ok=True)
+    for t in rows:
+        tok = t["branch"].split("/")[1]
+        p, dest = trial_dir(tok), f"{RESULTS}/{tok}"
+        if not os.path.exists(p):
+            print(f"  MISSING {p}"); continue
+        if os.path.exists(dest): shutil.rmtree(dest)
+        shutil.copytree(p, dest)
+        n = len(sh("git log --oneline", p).stdout.strip().splitlines())
+        files = [f for f in sh("git ls-tree -r --name-only HEAD", p).stdout.split()]
+        print(f"  {tok}: {len(files)} tracked file(s), {n-1} agent commit(s) -> {dest}")
+        shutil.rmtree(p)
+    print(f"wave {wave} collected and torn down")
+
+if __name__ == "__main__":
+    {"setup": setup, "collect": collect}[sys.argv[1]](int(sys.argv[2]))
