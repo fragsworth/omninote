@@ -58,3 +58,14 @@ the instrument.
 - `app.undo_stack` fires on **1 of 10**, while trial self-reports describe custom
   undo/redo in most. Its identifier list (`undoStack`, `redoStack`, `history[`…) misses
   the naming these apps actually use, so it badly under-detects.
+
+**3. One clarification added to the scorer instructions for `ephemeral_lang`.** The
+inlined criteria tell scorers explicitly that a save-state indicator reading "Not
+saved", or a warning that blocked storage means "changes will not be saved", does NOT
+count -- those describe a pending or failed state, not an intent to be ephemeral. This
+is the same false positive that invalidated the mechanical proxy (amendment 2), and the
+original wording already said the measure "is about saying so", i.e. design intent. The
+clarification prevents a human scorer repeating the regex's error.
+
+Scorers are given the measure table only, inlined in their prompt. They are never
+pointed at this file, because this log would disclose the design.
