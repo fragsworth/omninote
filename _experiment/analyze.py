@@ -134,29 +134,56 @@ def main():
                                   "control_mean": sum(xs) / len(xs), "treatment_mean": sum(ys) / len(ys),
                                   "p": p})
 
-    print("\nTREATMENT ARM: did it ever MENTION the README?")
+    # The README-mention measure comes from mentions.py, which is the validated
+    # instrument. The `readme_edited` / `mention_in_commit_msg` flags in facts.json are
+    # superseded: readme_edited is true for every trial in both arms (controls author a
+    # README, treatments overwrite the seed with one), and the commit-msg regex matched
+    # the bare word "README". Both are reported only to show what they would have said.
+    men = json.load(open(f"{HERE}/mentions_main.json"))
+    print("\nTREATMENT ARM: did it ever MENTION the seed README?  (mentions.py)")
     for r in trt:
-        f = r["facts"]
+        m = men[r["tok"]]
         bits = []
-        if f["mention_in_commit_msg"]: bits.append("commit-msg")
-        if f["mention_in_own_docs"]:   bits.append("own-docs")
-        if f["readme_edited"]:         bits.append("edited-readme")
-        if not f["readme_still_present"]: bits.append("DELETED-readme")
-        out["mentions"][r["tok"]] = {
-            "commit_msg": f["mention_in_commit_msg"],
-            "own_docs": f["mention_in_own_docs"],
-            "edited": f["readme_edited"],
-            "still_present": f["readme_still_present"],
-            "readme_final": f["readme_final"],
-            "any": bool(bits),
-        }
-        print(f"  {r['tok']}  {', '.join(bits) if bits else '(no mention, README untouched)'}")
-    n_any = sum(1 for v in out["mentions"].values() if v["any"])
-    print(f"\n  {n_any}/{len(trt)} treatment agents left any trace of the README")
+        if m["seed_intact"]: bits.append("SEED LEFT INTACT")
+        if m["any_seed"]:    bits.append("QUOTED SEED CONTENT")
+        if m["any_stub"]:    bits.append("stub language")
+        if not m["readme_present"]: bits.append("DELETED README")
+        print(f"  {r['tok']}  {', '.join(bits) if bits else 'no trace -- silently replaced with an ordinary README'}")
+        out["mentions"][r["tok"]] = dict(m, arm="treatment")
+    print(f"\n  seed README left byte-identical:     {sum(1 for r in trt if men[r['tok']]['seed_intact'])}/15")
+    print(f"  quoted the seed content anywhere:   {sum(1 for r in trt if men[r['tok']]['any_seed'])}/15")
+    print(f"  stub language near 'readme':        {sum(1 for r in trt if men[r['tok']]['any_stub'])}/15")
+    print(f"  deleted the README:                 {sum(1 for r in trt if not men[r['tok']]['readme_present'])}/15")
+    print(f"  CONTROL arm, same scan (specificity floor): "
+          f"{sum(1 for r in ctl if men[r['tok']]['any_seed'] or men[r['tok']]['any_stub'])}/15")
+    print("\n  superseded loose flags, for comparison only:")
+    print(f"    facts.readme_edited (true for anyone who wrote a README): "
+          f"{sum(1 for r in trt if r['facts']['readme_edited'])}/15 trt, "
+          f"{sum(1 for r in ctl if r['facts']['readme_edited'])}/15 ctl")
+    print(f"    facts.mention_in_commit_msg (matched bare word 'README'): "
+          f"{sum(1 for r in trt if r['facts']['mention_in_commit_msg'])}/15 trt, "
+          f"{sum(1 for r in ctl if r['facts']['mention_in_commit_msg'])}/15 ctl")
 
-    # a control-arm floor for the same string, as a specificity check
-    ctl_norec = sum(1 for r in ctl if re.search(r"NO RECORDS", json.dumps(r["facts"])) )
-    print(f"  control-arm agents whose repo contains the string 'NO RECORDS': {ctl_norec}/{len(ctl)}")
+    # Detectability: holding the observed control count fixed, what treatment count
+    # would have been needed to clear p<0.05? This is what makes "no large effect
+    # detected" a quantitative statement rather than a hedge.
+    print("\nDETECTABILITY at n=15 (what would it have taken?)")
+    out["detectability"] = []
+    for r in out["app"] + out["process"]:
+        if r["invariant"]:
+            continue
+        a, nc, nt = r["control"], r["n_control"], r["n_treatment"]
+        need = [c for c in range(nt + 1) if fisher_exact(a, nc - a, c, nt - c)[1] < 0.05]
+        lo = [c for c in need if c < r["treatment"]]
+        rec = {"measure": r["measure"], "label": r["label"], "control": a,
+               "treatment": r["treatment"],
+               "significant_at_or_below": max(lo) if lo else None,
+               "significant_at_or_above": min([c for c in need if c > r["treatment"]], default=None)}
+        out["detectability"].append(rec)
+        below = f"<={rec['significant_at_or_below']}" if rec["significant_at_or_below"] is not None else "impossible"
+        above = f">={rec['significant_at_or_above']}" if rec["significant_at_or_above"] is not None else "impossible"
+        print(f"  {r['label']:42s} ctl {a:2d}/15, observed trt {r['treatment']:2d}/15 | "
+              f"would need trt {below} or {above}")
 
     # Holm-Bonferroni over the measures that actually carry variance. Invariant
     # measures are excluded from the family: they were never tests.

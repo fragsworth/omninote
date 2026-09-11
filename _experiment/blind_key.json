@@ -1,0 +1,182 @@
+{
+ "A01": {
+  "token": "a24e",
+  "app_file": "notepad.html",
+  "bytes": 112892,
+  "sha256": "cc4c891e6529"
+ },
+ "A02": {
+  "token": "6e05",
+  "app_file": "index.html",
+  "bytes": 112577,
+  "sha256": "9bd3ba65180e"
+ },
+ "A03": {
+  "token": "186d",
+  "app_file": "notepad.html",
+  "bytes": 128017,
+  "sha256": "f95cdaf05882"
+ },
+ "A04": {
+  "token": "96aa",
+  "app_file": "index.html",
+  "bytes": 120881,
+  "sha256": "4f4fdfa217f2"
+ },
+ "A05": {
+  "token": "b8c8",
+  "app_file": "notepad.html",
+  "bytes": 90014,
+  "sha256": "37d69d5051a6"
+ },
+ "A06": {
+  "token": "9272",
+  "app_file": "index.html",
+  "bytes": 125844,
+  "sha256": "f12f5be65ca8"
+ },
+ "A07": {
+  "token": "75fb",
+  "app_file": "notepad.html",
+  "bytes": 95945,
+  "sha256": "d0240dc3613c"
+ },
+ "A08": {
+  "token": "15f0",
+  "app_file": "notepad.html",
+  "bytes": 100968,
+  "sha256": "b9a9dc26820c"
+ },
+ "A09": {
+  "token": "f575",
+  "app_file": "notepad.html",
+  "bytes": 121262,
+  "sha256": "cfc5a78383ce"
+ },
+ "A10": {
+  "token": "c9b3",
+  "app_file": "index.html",
+  "bytes": 90274,
+  "sha256": "6119fd91995d"
+ },
+ "A11": {
+  "token": "167e",
+  "app_file": "notepad.html",
+  "bytes": 99435,
+  "sha256": "594b42d68a8d"
+ },
+ "A12": {
+  "token": "1488",
+  "app_file": "index.html",
+  "bytes": 127847,
+  "sha256": "0d17f01c8677"
+ },
+ "A13": {
+  "token": "8354",
+  "app_file": "notepad.html",
+  "bytes": 109523,
+  "sha256": "5990ab4f2032"
+ },
+ "A14": {
+  "token": "dd95",
+  "app_file": "index.html",
+  "bytes": 151437,
+  "sha256": "b90ec7050dc7"
+ },
+ "A15": {
+  "token": "6ec2",
+  "app_file": "index.html",
+  "bytes": 108580,
+  "sha256": "2cc1eab052ea"
+ },
+ "A16": {
+  "token": "e197",
+  "app_file": "index.html",
+  "bytes": 121983,
+  "sha256": "cd230caa1a1a"
+ },
+ "A17": {
+  "token": "0595",
+  "app_file": "notepad.html",
+  "bytes": 93572,
+  "sha256": "a278c162c129"
+ },
+ "A18": {
+  "token": "32bd",
+  "app_file": "notepad.html",
+  "bytes": 102133,
+  "sha256": "ce6bf17c0e61"
+ },
+ "A19": {
+  "token": "41ea",
+  "app_file": "notepad.html",
+  "bytes": 140107,
+  "sha256": "f3bbe721cb01"
+ },
+ "A20": {
+  "token": "e5ce",
+  "app_file": "index.html",
+  "bytes": 134506,
+  "sha256": "9f8ccb2ae5ce"
+ },
+ "A21": {
+  "token": "0a3e",
+  "app_file": "index.html",
+  "bytes": 91671,
+  "sha256": "3a337f85dd24"
+ },
+ "A22": {
+  "token": "325c",
+  "app_file": "index.html",
+  "bytes": 109798,
+  "sha256": "726415eaecc6"
+ },
+ "A23": {
+  "token": "5f10",
+  "app_file": "notepad.html",
+  "bytes": 90711,
+  "sha256": "b05a71e0b7b0"
+ },
+ "A24": {
+  "token": "b1e0",
+  "app_file": "notepad.html",
+  "bytes": 108486,
+  "sha256": "b67ad9a20e91"
+ },
+ "A25": {
+  "token": "4ac1",
+  "app_file": "notepad.html",
+  "bytes": 109626,
+  "sha256": "186b69fd1373"
+ },
+ "A26": {
+  "token": "31c6",
+  "app_file": "notepad.html",
+  "bytes": 77258,
+  "sha256": "268886dde85d"
+ },
+ "A27": {
+  "token": "32cf",
+  "app_file": "index.html",
+  "bytes": 91638,
+  "sha256": "1b29d9656430"
+ },
+ "A28": {
+  "token": "e891",
+  "app_file": "notepad.html",
+  "bytes": 105046,
+  "sha256": "381695aeab27"
+ },
+ "A29": {
+  "token": "8b88",
+  "app_file": "notepad.html",
+  "bytes": 120219,
+  "sha256": "ea3448ce69ae"
+ },
+ "A30": {
+  "token": "58ff",
+  "app_file": "notepad.html",
+  "bytes": 88798,
+  "sha256": "4b3a47d4547c"
+ }
+}

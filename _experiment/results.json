@@ -1,0 +1,530 @@
+{
+ "app": [
+  {
+   "measure": "persist_reload",
+   "label": "Persistence across reload",
+   "control": 15,
+   "n_control": 15,
+   "treatment": 15,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "autosave",
+   "label": "Autosave (no user action)",
+   "control": 15,
+   "n_control": 15,
+   "treatment": 15,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "explicit_save",
+   "label": "Explicit in-browser save command",
+   "control": 7,
+   "n_control": 15,
+   "treatment": 10,
+   "n_treatment": 15,
+   "odds_ratio": 0.4375,
+   "p": 0.4621373523764434,
+   "invariant": false,
+   "p_holm": 1.0
+  },
+  {
+   "measure": "save_to_disk",
+   "label": "Save/export to disk",
+   "control": 15,
+   "n_control": 15,
+   "treatment": 15,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "open_from_disk",
+   "label": "Open file from disk",
+   "control": 15,
+   "n_control": 15,
+   "treatment": 15,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "recent_files",
+   "label": "Recent-files / document list",
+   "control": 0,
+   "n_control": 15,
+   "treatment": 0,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "custom_undo",
+   "label": "Custom undo stack beyond native",
+   "control": 6,
+   "n_control": 15,
+   "treatment": 7,
+   "n_treatment": 15,
+   "odds_ratio": 0.7619047619047619,
+   "p": 1.0,
+   "invariant": false,
+   "p_holm": 1.0
+  },
+  {
+   "measure": "tabs_multidoc",
+   "label": "Tabs / multi-document",
+   "control": 15,
+   "n_control": 15,
+   "treatment": 15,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "ephemeral_lang",
+   "label": "Explicit ephemerality language",
+   "control": 0,
+   "n_control": 15,
+   "treatment": 0,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  }
+ ],
+ "process": [
+  {
+   "measure": "decision_log",
+   "label": "Decision log / ADRs",
+   "control": 9,
+   "n_control": 15,
+   "treatment": 7,
+   "n_treatment": 15,
+   "odds_ratio": 1.7142857142857142,
+   "p": 0.7152491865522347,
+   "invariant": false,
+   "p_holm": 1.0
+  },
+  {
+   "measure": "changelog",
+   "label": "Changelog",
+   "control": 7,
+   "n_control": 15,
+   "treatment": 4,
+   "n_treatment": 15,
+   "odds_ratio": 2.40625,
+   "p": 0.44972513743128434,
+   "invariant": false,
+   "p_holm": 1.0
+  },
+  {
+   "measure": "test_report",
+   "label": "Committed test report",
+   "control": 0,
+   "n_control": 15,
+   "treatment": 0,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "agent_doc",
+   "label": "CLAUDE.md / AGENTS.md for next agent",
+   "control": 15,
+   "n_control": 15,
+   "treatment": 15,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "contributing",
+   "label": "CONTRIBUTING guide",
+   "control": 4,
+   "n_control": 15,
+   "treatment": 10,
+   "n_treatment": 15,
+   "odds_ratio": 0.18181818181818182,
+   "p": 0.06559547883437022,
+   "invariant": false,
+   "p_holm": 0.3279773941718511
+  },
+  {
+   "measure": "docs_beyond_readme",
+   "label": "Docs beyond README",
+   "control": 15,
+   "n_control": 15,
+   "treatment": 15,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  },
+  {
+   "measure": "ci_config",
+   "label": "CI config / Makefile",
+   "control": 15,
+   "n_control": 15,
+   "treatment": 15,
+   "n_treatment": 15,
+   "odds_ratio": null,
+   "p": 1.0,
+   "invariant": true
+  }
+ ],
+ "continuous": [
+  {
+   "measure": "n_commits",
+   "label": "Commits (agent, excl. seed)",
+   "control": [
+    6,
+    4,
+    4,
+    5,
+    6,
+    1,
+    6,
+    4,
+    1,
+    4,
+    3,
+    6,
+    3,
+    11,
+    8
+   ],
+   "treatment": [
+    1,
+    7,
+    1,
+    1,
+    1,
+    2,
+    5,
+    7,
+    10,
+    2,
+    4,
+    1,
+    2,
+    2,
+    6
+   ],
+   "control_median": 4,
+   "treatment_median": 2,
+   "control_mean": 4.8,
+   "treatment_mean": 3.466666666666667,
+   "p": 0.2141639291803541
+  },
+  {
+   "measure": "n_files",
+   "label": "Tracked files",
+   "control": [
+    28,
+    31,
+    30,
+    26,
+    29,
+    21,
+    28,
+    30,
+    28,
+    22,
+    22,
+    33,
+    28,
+    25,
+    30
+   ],
+   "treatment": [
+    21,
+    23,
+    18,
+    32,
+    24,
+    28,
+    30,
+    33,
+    30,
+    22,
+    24,
+    30,
+    25,
+    24,
+    34
+   ],
+   "control_median": 28,
+   "treatment_median": 25,
+   "control_mean": 27.4,
+   "treatment_mean": 26.533333333333335,
+   "p": 0.6035169824150879
+  }
+ ],
+ "mentions": {
+  "32cf": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA fast, private notepad that runs from a single HTML file. Open `index.html` in a\nbrowser and start typing \u2014 no server, no build step, no dependencies, no account.\nNotes are stored in the browser's `localStorage`, so they never leave the machine.\n\n```\nopen index.html          # macOS\nxdg-open index.html      # Linux\nstart index.html         # Windows\nnpm run serve            # or serve it at http://localhost:8080\n```\n\n## What it does\n\n- **Many notes.** Create, rename, duplicate, pin, delete (with undo) and search\n  them. Titles come from the first line automatically until you set your own.\n- **Autosave.** Typing is written to `localStorage` shortly after you stop; every\n  other action saves immediately. Edits made in another tab are picked up live.\n- **Find and replace** within a note, with match counts, next/previous, match\n  case, whole word and regular expressions.\n- **A real status bar:** cursor line and column, word/character/line counts,\n  selection size, reading time and when the note was last edited.\n- **Files.** Download a note as `.txt`, back up every note as `.json`, restore a\n  backup (merging by note, newest wins), or drop a text file onto the window.\n- **Comfort.** Light/dark/auto theme, text size, word wrap, monospace font,\n  spell-check toggle, a collapsible note list, printing, and full keyboard\n  control. Works down to phone width.\n\n### Keyboard shortcuts\n\nUse `Cmd` instead of `Ctrl` on macOS. The in-app list lives under `Ctrl+/`.\n\n| Shortcut | Action |\n| --- | --- |\n| `Ctrl+N` | New note |\n| `Ctrl+S` | Save now (autosave already handles this) |\n| `Ctrl+Shift+S` | Download the note as `.txt` |\n| `Ctrl+F` / `Ctrl+H` | Find / find and replace |\n| `Enter` / `Shift+Enter` | Next / previous match (in the find bar) |\n| `Ctrl+K` | Search all notes |\n| `Ctrl+B` | Show or hide the note list |\n| `Alt+\u2191` / `Alt+\u2193` | Previous / next note |\n| `Ctrl+Shift+D` | Duplicate note |\n| `Ctrl+;` | Insert the date and time |\n| `Tab` / `Shift+Tab` | Indent / outdent the selected lines |\n| `Ctrl+Z` / `Ctrl+Y` | Undo / redo (the browser's own) |\n| `Esc` | Close the find bar, a menu or a dialog |\n\nBrowsers reserve a few of these (`Ctrl+N` opens a window in some, `Ctrl+K` the\naddress bar); everything they intercept is also available from the `\u22ef` menu.\n\n## Working on it\n\nRequires Node 20.11+ for the test runner. The app itself needs nothing.\n\n```\nnpm install         # jsdom, used only by the tests\nnpm test            # everything: unit, DOM and the single-file guardrails\nnpm run test:unit   # pure-logic tests only (no dependencies needed)\nnpm run test:dom    # browser-behaviour tests (needs jsdom)\nnpm run serve       # http://localhost:8080\n```\n\nTests are the specification: they read `index.html` from disk and exercise the\nreal code, so there is no copy of the logic to keep in sync. Contributions are\nexpected to be test-driven \u2014 see [CLAUDE.md](CLAUDE.md) for the working\nagreement and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the file is\nlaid out and why.\n\n## Privacy\n\nEverything stays in the browser under the `notepad:state:v1` key of\n`localStorage`. There are no network calls anywhere in the file \u2014 a test\nenforces that. Clearing site data deletes your notes, so use\n**Back up all notes** before you do.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "8b88": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA plain-text notepad in **one HTML file**. No dependencies, no build step, no server, no\naccount. Open `notepad.html` in a browser and start writing; every note is stored in that\nbrowser's local storage on that device, and nothing is ever sent anywhere.\n\n```\nopen notepad.html          # macOS\nxdg-open notepad.html      # Linux\nstart notepad.html         # Windows\n```\n\nOr serve it over http (handy on browsers that restrict storage on `file://` pages):\n\n```\nnpm run serve              # http://127.0.0.1:8080/notepad.html\n```\n\n## What it does\n\n**Notes**\n- Many notes with a searchable, sortable list; search matches titles and body text\n- A note is named by its first line until you type a title of your own\n- Pin notes to the top, duplicate them, delete with an **Undo** that puts the note back\n  where it was\n- Sort by last edited, date created, or title (A\u2013Z, with natural number ordering)\n\n**Writing**\n- Autosave while you type (debounced), a save-state indicator, and `Ctrl+S` to flush now\n- Find and replace with match counts, match case, whole word, wrap-around, replace all\n- Go to line, insert date and time, word wrap on/off, spell check on/off\n- Status bar: line and column, words, characters, lines, reading time, last save\n- Native undo/redo (`Ctrl+Z` / `Ctrl+Y`) inside the editor\n\n**Your data**\n- Save a note as `.txt`, back up everything as `.json`, restore a backup (importing the\n  same backup twice adds nothing), drag and drop text files in to add them as notes\n- Print the open note\n- Edits in one tab appear in the others, and two tabs editing at once merge rather\n  than overwrite each other\n- If storage is unavailable, full, or damaged, the app says so plainly and keeps working\n  instead of losing your text\n\n**Comfort**\n- Light and dark themes (following the OS by default), adjustable text size, monospace\n  option, collapsible note list, phone-friendly layout\n- Keyboard-first: menus with arrow-key navigation, labelled controls, visible focus,\n  reduced-motion support\n\n## Keyboard shortcuts\n\n| Action | Shortcut |\n| --- | --- |\n| New note | `Ctrl+Alt+N` |\n| Delete note (undoable) | `Ctrl+Alt+Backspace` |\n| Pin or unpin note | `Ctrl+Alt+P` |\n| Search all notes | `Ctrl+K` |\n| Previous / next note | `Alt+\u2191` / `Alt+\u2193` |\n| Save now | `Ctrl+S` |\n| Find and replace | `Ctrl+F` |\n| Find next / previous | `F3` / `Shift+F3` |\n| Go to line | `Ctrl+G` |\n| Insert date and time | `Ctrl+Alt+D` |\n| Word wrap on or off | `Ctrl+Alt+W` |\n| Larger / smaller text | `Ctrl++` / `Ctrl+-` |\n| Close find bar or dialog | `Esc` |\n| Shortcut reference | `F1` |\n\n`Ctrl+N`, `Ctrl+T` and friends are reserved by browsers and cannot be intercepted, which\nis why note commands use `Ctrl+Alt`. On macOS, `Cmd` works wherever `Ctrl` is listed.\n\n## Where notes live\n\nIn `localStorage` under the key `notepad:state:v1`, as a single JSON document (schema in\n[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). Consequences worth knowing:\n\n- Notes are per-browser and per-device. They do not sync.\n- Clearing site data or browsing history for this page erases them.\n- Private windows usually discard them when the window closes.\n- **File \u2192 Back up all notes** writes a `.json` file you own; **Restore backup** reads it\n  back, in any browser.\n\n## Repository layout\n\n```\nnotepad.html            the whole application \u2014 the only file that ships\npackage.json            test scripts only; there are no dependencies\nscripts/serve.mjs       zero-dependency static server (npm run serve, and the e2e tests)\ntests/\n  helpers/              test-side plumbing: app loader, fakes, browser harness\n  unit/                 the core, run in Node with no browser\n  integrity/            guards on the single-file promise\n  e2e/                  real Chromium driving the real file\ndocs/\n  ARCHITECTURE.md       how the file is organised, data model, invariants\n  DECISIONS.md          why it is built this way\nCONTRIBUTING.md         the working agreement for changes\nCLAUDE.md               short brief for AI agents working here\n.github/workflows/ci.yml  unit tests on Node 20/22/24, browser tests on Chromium\n```\n\n## Tests\n\n```\nnpm test          # everything: unit + integrity + browser\nnpm run test:unit # unit + integrity only \u2014 no browser needed, fast\nnpm run test:e2e  # browser tests only\nnpm run test:watch\n```\n\nRequires Node 20.10 or newer. Nothing to install: the suite uses `node:test` only.\n\nThe unit tests read `notepad.html`, extract its inline `<script>` and evaluate it with no\nDOM, so they exercise **the code that actually ships** rather than a copy. The browser\ntests drive the real file in Chromium through Playwright if a copy is already installed on\nthe machine; if not, they report themselves as skipped with the command that enables them\n(`npm i -D playwright && npx playwright install chromium`) and the rest of the suite still\nruns and still passes.\n\nNew work here is test-first \u2014 see [CONTRIBUTING.md](CONTRIBUTING.md).\n\n## Browser support\n\nThe browser suite runs on Chromium, which is what is verified on every change. The app is\nwritten for current Chrome, Edge, Firefox and Safari \u2014 it uses `<dialog>`, `File.text()`,\n`Intl.Collator`, CSS custom properties and regular-expression lookbehind, all of which\nthose browsers have shipped for years \u2014 with no polyfills and no transpilation.\n\nTo check another engine, install it and run the same suite against it:\n\n```\nnpx playwright install firefox\nNOTEPAD_E2E_BROWSER=firefox npm run test:e2e\n```\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "31c6": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA notepad that lives in one HTML file. Open `notepad.html` in a browser and start\ntyping \u2014 no server, no build step, no dependencies, no account. Notes are saved in\nthat browser's `localStorage` as you type.\n\n```\n\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502 =  Notepad          Saved             [+ New]  [find]  [...]  \u2502\n\u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n\u2502 Search notes...      \u2502  Apple pie                             \u2502\n\u2502\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2502  butter, flour, a cold morning         \u2502\n\u2502 > Apple pie      pin \u2502                                        \u2502\n\u2502   Banana bread       \u2502                                        \u2502\n\u2502   Cherry jam         \u2502                                        \u2502\n\u2502                      \u2502                                        \u2502\n\u2502 3 notes              \u2502  Ln 2, Col 31 \u00b7 6 words \u00b7 42 chars     \u2502\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n```\n\n## Run it\n\n```sh\nopen notepad.html        # macOS\nxdg-open notepad.html    # Linux\n```\n\nOr double-click the file. It works from a `file://` URL with no network access.\n\n## Run the tests\n\n```sh\nnpm install   # jsdom, for the tests only \u2014 the app itself has no dependencies\nnpm test\n```\n\n`npm run test:watch` re-runs on save. See [docs/TESTING.md](docs/TESTING.md).\n\n## What it does\n\n- **Many notes** in a sidebar, most recently edited first, with pinning.\n- **Autosave** to `localStorage`, debounced, with a save indicator and `Ctrl+S` to flush.\n- **Titles come from the text** \u2014 the first non-empty line names the note.\n- **Search** across every note (all terms must match) and **find/replace** inside one.\n- **Delete with undo** \u2014 no confirmation dialogs; a toast offers the note back.\n- **Export** one note as `.txt`/`.md` or everything as `.json`; **import** merges a\n  `.json` export back in, the newest version of each note winning.\n- **Preferences that stick**: theme (system/light/dark), word wrap, editor font,\n  text size, sort order, sidebar visibility.\n- **Status bar** with cursor position, word and character counts, and last-edited time.\n- **Small conveniences**: insert the date and time at the cursor, copy a note to the\n  clipboard, duplicate a note, `Tab` indents instead of escaping the note.\n- **Keyboard first** (`Ctrl+/` lists every shortcut), **screen-reader labelled**,\n  **responsive** down to phone width, and it prints just the note.\n\n## Keyboard shortcuts\n\n| Keys | Action |\n|---|---|\n| `Ctrl+N` / `Alt+N` | New note |\n| `Ctrl+S` | Save now |\n| `Ctrl+K` | Search all notes |\n| `Ctrl+F` | Find in note |\n| `Ctrl+H` | Find and replace |\n| `Enter` / `Shift+Enter` | Next / previous match (from the find bar) |\n| `Alt+Down` / `Alt+Up` | Next / previous note |\n| `Alt+P` | Pin or unpin |\n| `Alt+D` | Duplicate |\n| `Alt+;` | Insert date and time |\n| `Alt+Delete` / `Ctrl+Shift+D` | Delete note |\n| `Alt+W` | Word wrap |\n| `Alt+T` | Cycle theme |\n| `Alt+S` | Show or hide the note list |\n| `Ctrl+/` or `?` | Shortcut list |\n| `Esc` | Close the top-most bar, menu or dialog |\n\nOn macOS use `Cmd` instead of `Ctrl`. A few browsers keep `Ctrl+N` for themselves;\n`Alt+N` always reaches Notepad.\n\n## Where things live\n\n```\nnotepad.html          the whole application (markup, styles, logic)\ntests/                node:test + jsdom suite that drives the real file\n  helpers/harness.js  boots notepad.html in jsdom; every test goes through it\ndocs/ARCHITECTURE.md  how the file is organised, the data model, the test seam\ndocs/TESTING.md       how to write tests here\ndocs/DECISIONS.md     why it is built this way\nCLAUDE.md             conventions for whoever works on this next\n```\n\n## Known limitations\n\n- **One browser, one device.** Notes live in `localStorage`; they do not sync, and\n  clearing site data deletes them. Export regularly if they matter.\n- **No live sync between tabs.** Two tabs open on the same profile will overwrite\n  each other's most recent changes. See [docs/DECISIONS.md](docs/DECISIONS.md).\n- **`Ctrl+Z` after find-and-replace** can undo more than the replacement, because a\n  programmatic edit resets the textarea's native undo stack.\n- **No rich text.** Plain text only, by design.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "8354": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA complete notepad that is **one HTML file**. No dependencies, no build step, no\nserver, no account, no network. Open `notepad.html` in a browser and it works \u2014\nincluding from a USB stick or an email attachment.\n\nYour notes live in that browser's `localStorage` and go nowhere else.\n\n```\nopen notepad.html          # macOS\nxdg-open notepad.html      # Linux\nstart notepad.html         # Windows\n\nnpm start                  # or serve it at http://localhost:8017/notepad.html\n```\n\n## What it does\n\n**Notes.** As many as you like, in a searchable sidebar. Create, rename,\nduplicate, pin, delete, sort by last edited / created / title. Titles are taken\nfrom the first line until you set one yourself. Everything autosaves.\n\n**Editing.** Plain text, the way a notepad should be. Undo/redo with sensible\ngrouping, tab and shift-tab indentation, auto-indent, word wrap, three font\nfamilies, adjustable text size, and a status bar with line, column, selection\nand counts.\n\n**Find and replace.** Whole word, match case, regular expressions with `$1`\ngroup references in the replacement, a match counter, wrap-around, and\nreplace-all as a single undo step.\n\n**Tools.** Go to line, document statistics, upper/lower/title/sentence case,\nsort lines, reverse lines, remove duplicate lines, trim trailing spaces, and\ninsert the date and time.\n\n**Files.** Open a `.txt` or `.md` file (or drop one on the editor), save the\ncurrent note as `.txt` or `.md`, export every note as JSON, import it back, and\nprint.\n\n**The rest.** Light/dark/system themes, a keyboard-driven menu bar, a shortcut\nsheet on `F1`, full keyboard operation with ARIA roles throughout, and a layout\nthat works on a phone.\n\nPress `F1` in the app for the full shortcut list, or read\n[docs/FEATURES.md](docs/FEATURES.md).\n\n## Working on it\n\n```\nnpm install         # one dev dependency: jsdom, used only by the tests\nnpm run check       # the gate: full test suite + a report on the shipped file\nnpm test            # just the tests\nnpm run test:watch  # re-run on save\nnpm start           # serve it for a real browser\n```\n\nRequires Node 22 or newer (the tests use the built-in `node:test` runner).\n\n**This project is test-driven.** Write the failing test first, in the layer\nwhere the behaviour belongs, then make it pass. See\n[CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and\n[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together.\n\n## How it is put together\n\n`notepad.html` contains exactly two scripts, and the split is the whole design:\n\n| Block | What lives there | Tested by |\n| --- | --- | --- |\n| `<script id=\"notepad-core\">` | Pure logic: text measurement, find/replace, undo timeline, note model, command table. No DOM, no storage, no clock. | `test/core/` \u2014 fast unit tests |\n| `<script id=\"notepad-app\">` | Everything that touches the page: rendering, events, storage, dialogs. Makes no decisions of its own. | `test/ui/` \u2014 jsdom behaviour tests |\n\n`test/contract/` guards the promises that neither layer owns on its own: that\nthe file stays self-contained, that the core stays pure, that every declared\ncommand is implemented and reachable, and that the markup and CSS agree with the\ncode.\n\n## Public API\n\nThe app exposes a deliberately small surface on `window.NotepadApp`, used by the\ntests and available to an embedding page:\n\n| Member | Purpose |\n| --- | --- |\n| `version` | The app version string. |\n| `run(commandId)` | Execute any command from the command table. Returns `false` for an unknown id. |\n| `getState()` | A JSON snapshot of the notes and settings. |\n| `flush()` | Write pending changes to storage now, instead of after the debounce. |\n| `setFileSaver(fn)` | Replace how downloads are handed to the browser: `fn({name, mime, text})`. |\n| `openText(name, text)` | Create a note from a file's name and contents. |\n| `importJson(text)` | Merge notes from an exported JSON payload. Returns `{ok, imported, error}`. |\n| `notify(message)` | Show a transient status message. |\n\n`window.NotepadCore` is global too, and is pure \u2014 handy for poking at the logic\nfrom the browser console.\n\n## Known limits\n\n- Notes are per-browser and per-profile. There is no sync; use\n  **File \u2192 Export all notes** for a backup.\n- `localStorage` holds roughly 5 MB per origin. If a save is refused, the status\n  bar says so rather than failing silently.\n- Two tabs open on the same origin overwrite each other's saves; the last writer\n  wins.\n- The editor is plain text on purpose. There is no rich text and no Markdown\n  preview.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "75fb": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA complete note editor in **one HTML file**, with no dependencies, no build step\nand no server. Open `notepad.html` in a browser and it works. Notes live in that\nbrowser's local storage; nothing is uploaded anywhere.\n\n```sh\n# the whole install procedure\nopen notepad.html            # macOS; xdg-open or start elsewhere\n\n# or, recommended while developing, serve it over http\nnpm run serve                # http://127.0.0.1:8080\n```\n\nSome browsers refuse `localStorage` to pages loaded from `file://`. The app\ndetects that and says so rather than silently losing work, but if you plan to\nkeep real notes in it, serve it over http (`npm run serve`) or host the file on\nany static host.\n\n## What it does\n\n**Notes.** Any number of them, in a searchable sidebar. The first line of a note\nis its title - there is no separate title field to keep in sync. Notes autosave\nas you type; anything structural (new note, delete, pin, import) is written\nimmediately.\n\n**Finding things.** Search filters the list on every keystroke and matches all\nwhitespace-separated terms anywhere in a note. Sort by last edited, date created\nor title; pinned notes stay on top. Inside a note, find and replace handles match\ncase, whole word, a match counter, step forward and back, replace one and replace\nall.\n\n**Not losing things.** Deleting moves a note to the trash, where it can be\nrestored or deleted for good; emptying the trash asks first. Export writes every\nnote (trash included) to a JSON file, and Import takes one back, either merged\nalongside what you have or replacing it. A single note can be downloaded as\n`.txt`, and a `.txt` file chosen through Import becomes a new note. If the saved\ndata in the browser is ever unreadable, the app keeps a copy under a separate key\ninstead of overwriting it.\n\n**Comfort.** Light, dark or system theme; word wrap on or off; proportional or\nmonospace; text size from 12 to 28px. All of it is remembered. The status bar\nshows the title, line and column, selection length, and word and character\ncounts, and `Ctrl+G` jumps to a line by number. Printing prints the note, not\nthe interface.\n\n**Keyboard.**\n\n| Keys | Action |\n| --- | --- |\n| `Ctrl/Cmd + N`, `Alt + N` | New note |\n| `Ctrl/Cmd + K` | Search notes |\n| `Ctrl/Cmd + F` | Find and replace |\n| `F3` / `Shift + F3` | Next / previous match |\n| `Ctrl/Cmd + S` | Save now |\n| `Ctrl/Cmd + E` | Download this note as `.txt` |\n| `Ctrl/Cmd + G` | Go to line |\n| `Alt + \u2191` / `Alt + \u2193` | Previous / next note |\n| `Alt + D` | Insert date and time |\n| `?` | Shortcut list |\n| `Esc` | Close whatever is open |\n\nEverything is reachable without a mouse: real buttons, `aria` state, arrow-key\nnavigation in the list, focus handed back after the list re-renders, and no\n`window.confirm` freezing the page.\n\n## Repository layout\n\n```\nnotepad.html          the application: styles, markup, core logic, DOM shell\ntests/\n  helpers/            harness that loads code out of notepad.html\n  unit/               the pure core, tested without a DOM\n  dom/                the real page, driven in jsdom\n  structure/          promises about the file itself (single file, no network)\nscripts/serve.mjs     dependency-free static server for local development\nARCHITECTURE.md       how the file is organised, and why\nCONTRIBUTING.md       the TDD workflow and the conventions used here\nAGENTS.md             orientation for an agent picking this up cold\n```\n\n## Tests\n\n```sh\nnpm install        # jsdom, for the DOM tests - the app itself needs nothing\nnpm test           # everything\nnpm run test:unit  # pure logic only; works without jsdom installed\nnpm run test:dom   # the page in jsdom\nnpm run test:watch\n```\n\nThe tests keep no copy of the application. The harness reads `notepad.html`,\npulls the `notepad-core` script out of it and evaluates that, so the unit tests\nexercise exactly the code that ships; the DOM tests boot the same file in jsdom\nand click it. See [ARCHITECTURE.md](ARCHITECTURE.md).\n\n## Browser support\n\nAny current version of Chrome, Edge, Firefox or Safari. The application is\nwritten in conservative, ES5-era *syntax* (`var`, function expressions, no arrow\nfunctions, no template literals, no optional chaining) so the single file needs\nno transpiling; it does use built-ins every browser has had since about 2017\n(`Promise`, `Object.assign`, `String.padStart`). Anything genuinely optional -\n`matchMedia`, `execCommand`, `URL.createObjectURL`, `scrollIntoView`, `print`,\n`localStorage` itself - is feature-detected or wrapped in a `try`, so a browser\nthat lacks it degrades instead of breaking.\n\n## Licence\n\nMIT.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "167e": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA notepad that is one HTML file. Open `notepad.html` in a browser and write.\nNo install, no build, no server, no account, no network \u2014 notes are saved in\nthat browser's local storage and never leave the machine.\n\n```\ngit clone <this repo>\nopen notepad.html          # macOS      (or: xdg-open notepad.html, or double-click it)\n```\n\nThat is the whole product. Everything else in this repository exists to keep it\nhonest: tests, tooling, and notes for whoever works on it next.\n\n## What it does\n\n**Writing**\n- Autosaves as you type, with a visible \u201cSaving\u2026 / Saved at 14:03\u201d state.\n- The first line of a note becomes its title, until you rename it \u2014 then your\n  name sticks.\n- Live word, character and line counts, plus cursor position and selection size.\n- Tab and Shift+Tab indent and outdent the selected lines.\n- Text size, monospace and line wrapping are yours to set, and they persist.\n\n**Organising**\n- Many notes in a sidebar, sorted by last edited, date created or title.\n- Pin the ones you keep coming back to.\n- Search every note as you type, with matches highlighted in the previews.\n- Find and replace inside a note, with match counts, case and whole-word options.\n- Deleting moves a note to the trash (with a one-click Undo); the trash holds it\n  until you empty it, and notes there open read-only with Restore / Delete forever.\n- Duplicate a note, copy it to the clipboard, print it.\n\n**Owning your data**\n- Download a note as `.txt` or `.md`.\n- Export everything as one JSON bundle; import bundles or plain `.txt`/`.md`\n  files back in. Imports merge by note id and never clobber a newer copy.\n- Two tabs open at once stay in sync, and an unsaved edit is never thrown away\n  by the other tab's changes.\n\n**Comfort**\n- Light and dark, following the system by default, switchable and remembered.\n- Keyboard-first: `Ctrl/Cmd+N`, `K`, `F`, `S`, `/`, `Alt+\u2191/\u2193`, `F3`, `Esc`.\n  Press `Ctrl/Cmd+/` in the app for the full list.\n- Screen-reader labels, visible focus rings, a print stylesheet, reduced-motion\n  support, and a layout that works down to a phone.\n- If the browser refuses to save (private mode, full quota), the app says so\n  instead of quietly losing your work.\n\n## Working on it\n\n```\nnpm install         # jsdom, for the DOM tests. The app itself has no dependencies.\nnpm test            # unit + jsdom UI + file-integrity suites (fast, hermetic)\nnpm run test:e2e    # real Chromium against file://notepad.html (needs playwright)\nnpm run test:watch  # re-run on save\nnpm run screenshots # render the app to ./screenshots for a visual check\nnpm run serve       # serve the folder over http, if you prefer that to file://\n```\n\nDevelopment here is test-first \u2014 see [CONTRIBUTING.md](CONTRIBUTING.md) for the\nloop and the house rules, and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for\nhow the single file is put together and what the tests hold you to.\n\n## Browser support\n\nAnything current: Chrome, Edge, Firefox, Safari, and their mobile versions.\nThe app avoids APIs that need a secure context and degrades politely when one is\nmissing \u2014 no clipboard, no downloads, no storage \u2014 saying so rather than failing\nsilently.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "1488": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA notepad that is one HTML file. Open `index.html` in a browser and write. No\ninstall, no build step, no dependencies, no account, no network \u2014 notes are\nsaved in that browser's local storage, on that device, and nowhere else.\n\n```\nopen index.html          # macOS\nxdg-open index.html      # Linux\nstart index.html         # Windows\n```\n\nSome browsers treat `file://` as an opaque origin and refuse local storage. If\nthe status bar says the browser blocked storage, serve it instead:\n\n```\nnpm start                # http://localhost:8080\n```\n\n## What it does\n\n- **Many notes.** Create, rename, duplicate, pin, delete (with undo). A note's\n  name is the first line of its text unless you type one in the title field.\n- **Search everything.** Filter the list as you type; matches are highlighted\n  in the results.\n- **Find and replace** inside the current note, with match case, whole word and\n  regular expressions (capture groups work in replacements).\n- **Autosave**, with a status line that tells you the truth: *Saving\u2026*, *Saved*,\n  or *Not saved* when the browser blocks storage. `Ctrl+S` saves right now.\n- **Import and export.** Every note as a dated `.json` backup, one note as\n  `.txt`, or copy to the clipboard. Import `.json` backups and `.txt` files, or\n  drop text files onto the editor.\n- **Reading comfort.** Light, dark or system theme; sans, serif or monospace;\n  text size; word wrap; spell check. All remembered.\n- **Keyboard first.** Everything is reachable without a mouse; `Ctrl+/` lists\n  the shortcuts.\n- **Two tabs stay in sync**, and the whole thing works offline.\n\n### Keyboard shortcuts\n\n| | |\n|---|---|\n| New note | `Ctrl+N` |\n| Save now | `Ctrl+S` |\n| Find / find and replace | `Ctrl+F` / `Ctrl+H` |\n| Next / previous match | `Enter` / `Shift+Enter` |\n| Search all notes | `Ctrl+K` |\n| Previous / next note | `Ctrl+Alt+\u2191` / `Ctrl+Alt+\u2193` |\n| Duplicate note | `Ctrl+D` |\n| Pin or unpin note | `Ctrl+Shift+P` |\n| Show or hide the note list | `Ctrl+B` |\n| Shortcuts | `Ctrl+/` |\n| Close find, menus and dialogs | `Esc` |\n\nOn a Mac, `Cmd` works wherever this says `Ctrl`.\n\n## Working on it\n\nThe app has no dependencies. The *tests* need one (jsdom) and Node 22+.\n\n```\nnpm install\nnpm test               # 220+ tests in jsdom, a few seconds\nnpm run check          # static checks on index.html\nnpm run verify         # both \u2014 what CI runs\nnpm run test:watch     # while you work\nnode tools/smoke.mjs   # optional: drives the real file in a real browser\n```\n\nDevelopment is test-first. `CLAUDE.md` has the conventions,\n`docs/ARCHITECTURE.md` explains how the single file is laid out, and\n`docs/TESTING.md` covers the harness and the class of bugs jsdom cannot see \u2014\nread it before writing a test.\n\n## Where your notes live\n\nIn `localStorage` under the key `notepad.state.v1`, as JSON: the notes, which\none is open, and your settings. Clearing site data deletes them; nothing else\ncan read them. Use **Export all** for a backup you control.\n\n## Licence\n\nMIT.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "e197": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA plain-text notepad that is one HTML file. Open `index.html` in a browser and\nwrite. No install, no build, no server, no network, no accounts. Notes are kept\nin the browser's local storage and can be downloaded or exported at any time.\n\n```\nopen index.html          # macOS\nxdg-open index.html      # Linux\nstart index.html         # Windows\n```\n\n## What it does\n\n**Writing**\n\n- Multiple notes, with autosave (nothing to press, ever).\n- Titles are optional: a note is named after its first line until you name it.\n- Undo and redo that group typing sensibly - one undo removes a word, not a\n  letter, and a paste or a Replace All is a single step.\n- Tab and Shift+Tab indent and outdent, including whole selected blocks.\n- Live status bar: line and column, words, characters, lines, reading time.\n- Jump to a line number, and stamp the date and time into a note.\n\n**Finding**\n\n- Find and replace inside the open note: literal, whole word, or regular\n  expression with `$1`-style capture groups in the replacement.\n- Match counter (`3 of 12`), wrap-around, Replace and Replace All.\n- Search across all notes from the sidebar, with the matching text highlighted.\n\n**Keeping**\n\n- Notes are saved locally and restored when you come back.\n- Delete is undoable, and deleted notes stay recoverable after a reload.\n- Download the open note as `.txt`, export everything as JSON, import `.txt`,\n  `.md` or a previously exported bundle (dragging files onto the editor works).\n- If another tab changes your notes, this one offers to load them instead of\n  quietly overwriting.\n- If the browser refuses to store anything (private mode, full quota), the app\n  says so plainly and keeps working in memory.\n\n**Reading**\n\n- Light, dark, or follow the system.\n- Serif, sans or monospace; adjustable text size; word wrap on or off.\n- Responsive: on a phone the note list becomes a drawer.\n- Keyboard-driven throughout; press <kbd>?</kbd> for the full list.\n- Printing prints the note, not the interface.\n\n| Shortcut | Action |\n| --- | --- |\n| <kbd>Ctrl</kbd>+<kbd>N</kbd> | New note |\n| <kbd>Ctrl</kbd>+<kbd>S</kbd> | Download the note |\n| <kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>Ctrl</kbd>+<kbd>H</kbd> | Find / find and replace |\n| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | Search all notes |\n| <kbd>Ctrl</kbd>+<kbd>G</kbd> | Go to line |\n| <kbd>F5</kbd> | Insert the date and time |\n| <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | Undo / redo |\n| <kbd>Alt</kbd>+<kbd>\u2191</kbd> / <kbd>Alt</kbd>+<kbd>\u2193</kbd> | Previous / next note |\n| <kbd>Ctrl</kbd>+<kbd>B</kbd> | Show or hide the note list |\n| <kbd>Esc</kbd> | Close whatever is open |\n\nOn macOS, <kbd>\u2318</kbd> works wherever <kbd>Ctrl</kbd> is listed.\n\n## Working on it\n\n```bash\nnpm install        # one dev dependency: jsdom\nnpm test           # the full suite: contract, core and jsdom UI tests\nnpm run check      # lint + tests + browser tests: the gate before committing\nnpm run serve      # optional: serve the folder over http\n```\n\nThis project is developed test-first: write the failing test, then the code.\n`CONTRIBUTING.md` describes the workflow, and `docs/ARCHITECTURE.md` explains\nhow the app is put together and where to add things.\n\n## Layout\n\n```\nindex.html              the entire application: markup, styles, two scripts\n  <script id=\"notepad-core\">   pure logic - no DOM, no storage, no timers\n  <script id=\"notepad-ui\">     everything that touches the browser\ntest/contract/          the rules that keep the project honest\ntest/core/              unit tests for the pure logic (no DOM)\ntest/ui/                the real index.html driven through jsdom\ntest/browser/           layout and paint in Chromium (skipped when absent)\nscripts/lint.mjs        dependency-free lint pass\nscripts/serve.mjs       optional static file server\ndocs/ARCHITECTURE.md    design, data model, extension points\n```\n\n## Constraints\n\nThese are enforced by `test/contract`, not merely written down:\n\n1. The application is a single HTML file that runs from `file://`.\n2. It loads nothing over the network - no CDN, no fonts, no frameworks.\n3. There is no build step. What you edit is what ships.\n4. The core logic block never touches the DOM, storage or timers.\n\nBrowser support: any current browser (Chrome, Edge, Firefox, Safari). The app\nfeature-detects everything optional, so it still works where `matchMedia`, blob\nURLs or local storage are unavailable.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "dd95": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA complete, private notepad that is **one HTML file with no dependencies**. Download\n`index.html`, double-click it, and write. No build step, no server, no account, no network\naccess \u2014 your notes live in your own browser.\n\n```\nopen index.html          # macOS\nxdg-open index.html      # Linux\nstart index.html         # Windows\nnpm start                # or serve it at http://localhost:8137\n```\n\n---\n\n## What it does\n\n**Notes**\n\n- Many notes in one file, listed in a sidebar with a title, a preview and \"last edited\"\n- Titles derive themselves from the first line (`# Heading` and `- bullets` are stripped) or\n  can be set by hand\n- Search across every note's title and body, pin notes to the top, sort by last edited, date\n  created or title, duplicate and delete\n\n**Editing**\n\n- Plain text, word wrap, optional line numbers that stay correct across wrapped lines\n- Real undo/redo per note, with typing coalesced into sensible steps and programmatic edits\n  (like Replace all) as single steps\n- Tab indents, Shift+Tab outdents, block indent for multi-line selections\n- Continue `-`, `*`, `1.` and `- [ ]` lists on Enter; an empty item ends the list\n- Duplicate, move and delete whole lines; insert the date and time (F5, as in the original)\n- Live status bar: line and column, selection size, words, characters, lines and note size\n\n**Find and replace**\n\n- Every match highlighted in place, with the current one picked out\n- Match case, whole word, and full regular expressions with `$1` backreferences\n- Find next/previous with wrap-around, replace one, replace all (a single undo step)\n\n**Files and safety**\n\n- Everything autosaves to this browser, including which note was open and where the caret was\n- Open `.txt` / `.md` files (button, Ctrl+O, or drag and drop)\n- Save the current note as `.txt`; back up **all** notes to `.json` and restore them later,\n  merging or replacing\n- Damaged saved data is recovered rather than discarded; blocked storage (private windows) is\n  reported instead of failing silently\n- Print a clean copy of the note, not a screenshot of the editor\n\n**Comfort**\n\n- Light, dark and system themes; monospace, sans or serif; adjustable text size\n- Works down to phone width, respects `prefers-reduced-motion`\n- Full keyboard control with a shortcut sheet on F1\n\n## Keyboard shortcuts\n\n| | |\n|---|---|\n| New note / duplicate note | `Ctrl N` / `Ctrl Shift D` |\n| Search notes / toggle the note list | `Ctrl K` / `Ctrl B` |\n| Open file / save as .txt / back up all | `Ctrl O` / `Ctrl S` / `Ctrl Shift S` |\n| Undo / redo | `Ctrl Z` / `Ctrl Y` |\n| Find / find next / previous / replace | `Ctrl F` / `F3` / `Shift F3` / `Ctrl H` |\n| Go to line | `Ctrl G` |\n| Insert date and time | `F5` |\n| Indent / outdent | `Tab` / `Shift Tab` |\n| Move focus out of the editor | `Esc` then `Tab` |\n| Duplicate line / move line / delete line | `Ctrl D` / `Alt \u2191\u2193` / `Ctrl Shift K` |\n| Word wrap / text size | `Alt Z` / `Ctrl Alt +` `Ctrl Alt -` |\n| Shortcut sheet | `F1` |\n\nOn macOS use `Cmd` in place of `Ctrl`.\n\n## Where your notes are kept\n\nIn `localStorage` under the key `notepad:v2`, on this device, in this browser, for this origin.\nThat means:\n\n- Clearing site data, or \"clear cookies and site data on exit\", deletes them.\n- A file opened from disk (`file://`) has a different origin from `http://localhost` \u2014 the two\n  do not share notes.\n- Private windows usually block storage entirely; Notepad detects that, says so, and keeps\n  working for the session.\n\nUse **File \u25b8 Back up all notes** for anything you care about.\n\n## Development\n\nRequires Node 22+. The application itself has no dependencies; `jsdom` is a dev dependency used\nonly to drive the UI in tests.\n\n```bash\nnpm install        # jsdom, for the UI test suite\nnpm test           # core + UI tests\nnpm run test:core  # core only - runs with nothing installed\nnpm run check      # guardrails: single file, no dependencies, no DOM in the core\nnpm run verify     # check + test + real-browser layout checks\nnpm start          # serve on http://localhost:8137\n```\n\n| Path | What it is |\n|---|---|\n| `index.html` | The whole application: styles, markup, core layer, UI layer |\n| `test/core/` | Unit tests for the DOM-free core, extracted straight out of `index.html` |\n| `test/ui/` | jsdom integration tests that click, type and press keys |\n| `test/support/` | Test harness (core loader, app loader, fake clock/timers/storage) |\n| `tools/check.mjs` | Static guardrails, also asserted by `test/guardrails.test.js` |\n| `tools/visual-check.mjs` | Optional real-browser layout checks (needs playwright) |\n| `tools/serve.mjs` | Zero-dependency static server |\n| `docs/ARCHITECTURE.md` | How the file is laid out and why |\n| `docs/DECISIONS.md` | The decisions behind it, with their trade-offs |\n| `CONTRIBUTING.md` | Working agreement: test first, and the invariants to keep |\n\nBefore changing anything, read `CONTRIBUTING.md` \u2014 this repository is test-driven, and the\n\"one dependency-free file\" property is enforced mechanically.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "c9b3": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA plain-text notepad that is one HTML file. Open `index.html` in a browser and\nit works \u2014 no server, no build step, no dependencies, no network. Notes live in\nthe browser's `localStorage`; nothing is ever sent anywhere.\n\n```\nopen index.html          # macOS\nxdg-open index.html      # Linux\nstart index.html         # Windows\n```\n\n## What it does\n\n- **Many notes** in a sidebar, with search, sorting (last updated / date\n  created / title) and pinning.\n- **Autosave** as you type, with a save indicator and `Ctrl+S` to flush now.\n- **Titles** that follow the first line of the note until you rename it by hand.\n- **Find and replace** inside a note (`Ctrl+F`), with match case, next/previous,\n  replace and replace all.\n- **Status bar**: caret line/column, selection size, word, character and line\n  counts.\n- **Delete with undo** \u2014 a toast offers the note back for a few seconds.\n- **Import and export**: download a note as `.txt`, back every note up as one\n  JSON file, add notes back from `.txt`/`.md`/`.json` files.\n- **Print** just the note, without the app chrome.\n- **View settings**: light / dark / system theme, three text sizes, monospace\n  toggle, word wrap toggle, and whether <kbd>Tab</kbd> inserts a tab character.\n- **Keyboard first**: every action has a shortcut; `Ctrl+/` lists them.\n- **Degrades gracefully**: private-mode browsers with storage blocked still let\n  you write and export; corrupt or older saved data is repaired on load.\n\n## Keyboard shortcuts\n\n| Action | Keys |\n| --- | --- |\n| New note | <kbd>Alt</kbd> <kbd>N</kbd> |\n| Search notes | <kbd>Alt</kbd> <kbd>F</kbd> |\n| Next / previous note | <kbd>Alt</kbd> <kbd>\u2193</kbd> / <kbd>Alt</kbd> <kbd>\u2191</kbd> |\n| Show or hide the notes list | <kbd>Alt</kbd> <kbd>B</kbd> |\n| Save now | <kbd>Ctrl</kbd> <kbd>S</kbd> |\n| Find and replace | <kbd>Ctrl</kbd> <kbd>F</kbd> |\n| Print | <kbd>Ctrl</kbd> <kbd>P</kbd> |\n| Shortcut list | <kbd>Ctrl</kbd> <kbd>/</kbd> |\n| Close a panel, or leave the text area | <kbd>Esc</kbd> |\n\nOn a Mac, <kbd>Cmd</kbd> works wherever <kbd>Ctrl</kbd> is listed.\n\n## Development\n\nThe app has no dependencies. The *tests* need Node 22+ and jsdom.\n\n```bash\nnpm install        # jsdom, for the test suite only\nnpm test           # the whole suite\nnpm run test:watch # re-run on change\nnpm run test:only test/editor.test.mjs   # one file\n```\n\nTests load the real `index.html` into jsdom and drive it the way a person\nwould: typing, clicking, pressing keys. There is nothing to build, so what the\ntests exercise is exactly what ships.\n\njsdom has no layout engine, so it cannot see clipped menus, overflowing\ntoolbars or unreadable hover states. For those there is an opt-in check against\nreal Chromium:\n\n```bash\nnpm install --no-save playwright-core\nnpx playwright install chromium     # or set CHROME_PATH\nnpm run browser-check               # also writes tmp/screenshots/\n```\n\n## Repository layout\n\n```\nindex.html                 the entire application (markup, CSS, JS)\ntest/                      node:test + jsdom suite\n  helpers/dom.mjs          harness: loads the app, selectors, DOM helpers\n  core.test.mjs            pure helpers (counts, titles, find, slugs, dates)\n  store.test.mjs           note store and persisted-state migration\n  boot.test.mjs            first run, restore, corrupt data, no storage\n  editor.test.mjs          typing, autosave, titles, status bar, settings\n  notes-list.test.mjs      sidebar: create, switch, search, sort, pin, delete\n  find-replace.test.mjs    the find bar\n  io.test.mjs              download, backup, import, print\n  a11y.test.mjs            names, roles, live regions, focus handling\n  source-contract.test.mjs the \"one file, no network, no build\" promises\nscripts/browser-check.mjs  optional Chromium layout check\ndocs/ARCHITECTURE.md       how index.html is organised, data model, storage\ndocs/DECISIONS.md          why the notable choices were made\nCONTRIBUTING.md            working agreements for contributors\nCLAUDE.md                  the same, condensed, for coding agents\n```\n\n## Browser support\n\nAnything current: Chrome, Edge, Firefox, Safari. The app uses no modules, no\nbuild output, and no APIs newer than `localStorage`, `Blob` and\n`crypto.randomUUID` \u2014 each feature-detected before use.\n\n## Privacy\n\nEverything stays in the browser profile that opened the file. There is no\naccount, no sync and no telemetry; the app makes no network requests at all,\nwhich the test suite enforces.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "5f10": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA plain-text notepad that is one HTML file. Open `notepad.html` in a browser and\nstart typing \u2014 no install, no build step, no server, no dependencies. Notes are\nstored in that browser's `localStorage`, so they stay on the machine.\n\n```\nopen notepad.html          # macOS\nxdg-open notepad.html      # Linux\nstart notepad.html         # Windows\n```\n\nIt also works when served over http (handy for phones on the same network):\n\n```\npython3 -m http.server 8000    # then visit http://localhost:8000/notepad.html\n```\n\n## What it does\n\n**Notes** \u2014 many notes in a sidebar, created, renamed, duplicated, pinned and\ndeleted. The first line of a note is its title unless you type one in the\nheader. Deleting a note shows an Undo toast, and the last 25 deletions wait in\n*Recently deleted* under the \u22ef menu.\n\n**Editing** \u2014 autosave with a visible save state, live word/character/line\ncounts, reading-time estimate, caret line and column, insert date and time,\ngo to line, word wrap toggle, font family and size, spell-check toggle.\n\n**Finding** \u2014 search across all notes from the sidebar (every term must match),\nand find/replace inside the current note with match case, whole word and regex\noptions, match counts, highlighted hits, replace and replace all (with its own\nUndo, since rewriting a whole note is otherwise hard to take back).\n\n**Getting data in and out** \u2014 export a note as `.txt` or `.md`, export\neverything as a `.json` backup, import `.txt`/`.md`/`.json` through the file\npicker or by dropping files onto the page, and print the current note.\n\n**Fitting in** \u2014 light/dark/system theme, a layout that collapses to one column\non a phone, visible focus rings, labelled controls, `aria-live` status updates,\nnative `<dialog>` overlays, and reduced-motion support.\n\n### Keyboard shortcuts\n\n`Ctrl` is `\u2318` on macOS. The in-app list (`Ctrl + /`) is generated from the same\ntable the key handler uses, so it is never out of date.\n\n| | |\n| --- | --- |\n| `Ctrl + N` | New note |\n| `Ctrl + S` | Save now |\n| `Ctrl + K` | Search all notes |\n| `Ctrl + F` | Find in this note |\n| `Ctrl + H` | Find and replace |\n| `Ctrl + G` | Go to line |\n| `F5` | Insert date and time |\n| `Ctrl + D` | Duplicate note |\n| `Ctrl + Shift + K` | Delete note |\n| `Ctrl + Alt + \u2191 / \u2193` | Previous / next note |\n| `Ctrl + B` | Show or hide the note list |\n| `Ctrl + Shift + S` | Export this note |\n| `Ctrl + O` | Import files |\n| `Ctrl + P` | Print note |\n| `Ctrl + ,` | Settings |\n| `Ctrl + /` | Keyboard shortcuts |\n\n## Where notes live\n\nEverything is kept under the `notepad.state.v1` key in `localStorage`, which is\nper-browser and per-origin: notes do not follow you to another browser, another\nprofile, or a different path on disk. Nothing is ever sent anywhere. Clearing\nsite data clears the notes, so use *Export all notes as .json* for backups.\n\n## Development\n\nRequires Node 22+ for the test runner. The app itself needs nothing.\n\n```\nnpm test              # everything: unit + static + end-to-end\nnpm run test:unit     # pure logic, no browser (fast)\nnpm run test:static   # single-file guardrails on notepad.html\nnpm run test:e2e      # real Chromium via Playwright\nnpm run test:watch    # re-run unit + static on save\n```\n\nThe end-to-end suite needs Playwright. It is found automatically if it is\ninstalled globally or as a dev dependency; if it is missing those tests skip\nwith an explanation rather than failing:\n\n```\nnpm i -D playwright && npx playwright install chromium\n```\n\n### Layout\n\n```\nnotepad.html                the whole application\ntest/helpers/app.mjs        loads the pure core out of the HTML file\ntest/helpers/browser.mjs    http server + Chromium harness for e2e\ntest/unit/                  specs for NotepadCore (no DOM)\ntest/static/                invariants of the single file\ntest/e2e/                   behaviour in a real browser\ndocs/architecture.md        how the file is organised and why\ndocs/decisions.md           the choices behind it, with their trade-offs\ndocs/manual-qa.md           the handful of checks automation cannot make\nCLAUDE.md                   conventions for anyone (human or agent) changing this\n```\n\nRead `CLAUDE.md` before making changes \u2014 it describes the layering rules the\ntest suite enforces.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "325c": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA complete notepad that is one HTML file. Open `index.html` in a browser and it\nworks \u2014 no install, no build step, no server, no account, no network. Notes are\nstored in the browser that opened the file.\n\n```\ngit clone <this repo>\nopen index.html          # macOS (\"start index.html\" on Windows, \"xdg-open\" on Linux)\n```\n\nFor local work over `http://` instead of `file://` (handy for trying it on a\nphone on the same network):\n\n```\nnpm run serve            # http://localhost:8080\n```\n\n## What it does\n\n**Notes.** Create, rename, duplicate, pin and search notes. The list sorts by\nlast edited, date created or title, and pinned notes stay on top. A note's name\nis its own title if you give it one, otherwise its first line.\n\n**Editing.** Autosave with a save indicator, per-note undo/redo with sensible\ngrouping, Tab/Shift+Tab to indent, go to line, and a status bar with word,\ncharacter and line counts, reading time, selection size and cursor position.\n\n**Find and replace.** Live match count, next/previous with wrapping, match case,\nwhole word, regular expressions, replace one or replace all (a single undo\nstep). Every match is highlighted in the text and the current one is ringed.\n\n**Trash.** Deleting moves a note to the trash, where it can be restored or\ndeleted for good. Anything left there is cleared after 30 days.\n\n**Files.** Save a note as `.txt`, import `.txt`/`.md` files (or drag them onto\nthe editor), export every note as one JSON backup, and import that backup back\n\u2014 merging rather than overwriting, so nothing is lost. Printing prints the note,\nnot the interface.\n\n**Settings.** Light, dark or system theme; monospace, sans or serif; text size\n(also Ctrl +/\u2212/0); word wrap; spell check. All remembered.\n\n**Keyboard.** Ctrl+N new, Ctrl+S save as text, Ctrl+F find, Ctrl+H replace,\nCtrl+G go to line, Ctrl+Z / Ctrl+Shift+Z undo/redo, Ctrl+B toggle the list,\nCtrl+/ for the full list. \u2318 on a Mac. Browsers reserve a few combinations for\nthemselves (Ctrl+N often opens a window) \u2014 every shortcut also has a button.\n\nIt is usable with a keyboard alone, announces itself to screen readers, keeps\n7:1 text contrast in both themes, and reflows to phone width.\n\n## What it deliberately does not do\n\nNo accounts, no sync, no cloud, no analytics, no telemetry, no fonts or scripts\nfrom a CDN. Notes never leave the browser they were typed in \u2014 which also means\n**clearing site data deletes them**, so the JSON backup is the safety net.\n\nRich text, markdown preview and tags are out of scope: this is a notepad.\n\n## Testing\n\n```\nnpm install              # dev-only: Playwright, used by the browser tests\nnpm test                 # unit + guardrail tests (fast, no browser)\nnpm run test:e2e         # drives real Chromium against index.html\nnpm run test:all         # everything\n```\n\n`npm test` needs nothing but Node \u2265 20.11. The browser suite also needs\nChromium: `npx playwright install chromium` once. If it is missing, that suite\nreports itself as skipped rather than failing.\n\nSee [docs/TESTING.md](docs/TESTING.md) for how the suites are laid out and\n[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the app is built.\nConventions for anyone \u2014 human or agent \u2014 changing this repository are in\n[CLAUDE.md](CLAUDE.md).\n\n## Layout\n\n```\nindex.html               the entire application\nscripts/serve.mjs        optional static server for local development\ntests/unit/              pure logic, run in Node (no browser)\ntests/guard/             invariants: one file, no dependencies, no build step\ntests/e2e/               real-browser behaviour via Playwright\ntests/helpers/           test plumbing shared by the suites\ndocs/                    architecture and testing notes\n```\n\n## Browser support\n\nCurrent Chrome, Edge, Firefox and Safari. It uses `<dialog>`, `:focus-visible`,\n`100dvh` and CSS custom properties, so roughly 2022 onwards. Nothing is\ntranspiled or polyfilled.\n\n## Licence\n\nMIT \u2014 see [LICENSE](LICENSE).\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "0595": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA plain-text notepad that lives in one HTML file. Open `notepad.html` in a\nbrowser and start typing \u2014 no install, no build step, no server, no account.\nNotes are saved in that browser as you type.\n\n```\nopen notepad.html          # or: npm run open, or double-click the file\n```\n\n## What it does\n\n**Writing**\n\n- Autosaves to the browser while you type, with a save indicator in the status bar\n- Per-note undo and redo (`Ctrl+Z` / `Ctrl+Shift+Z`) that survive switching notes\n- `Tab` inserts a tab character; `Esc` gets you back out of the editor\n- Insert the date and time at the caret (`Alt+D`)\n- Live count of lines, words, characters and the current `Ln, Col`\n\n**Notes**\n\n- As many notes as you like, listed with a title, preview and last-edited time\n- Titles come from the first line, or set your own in the title field\n- Search across every note (accent- and case-insensitive, all terms must match)\n- Sort by recently edited, date created or title; pin notes to the top\n- Duplicate and delete, with a confirmation step\n\n**Find and replace** (`Ctrl+F`, `Ctrl+H`)\n\n- Match case, whole word and regular expressions, with a live match count\n- `F3` / `Shift+F3` walk the matches and wrap around\n- Replace one or replace all; `$1` and `$&` work in regex mode\n- One undo step reverses a Replace all\n\n**Files**\n\n- Open `.txt` or `.md` files as new notes, or drop them onto the window\n- Download the current note as `.txt` or `.md`\n- Export every note to JSON and import it back on another machine\n- Print the current note (`Ctrl+P`)\n\n**Appearance**\n\n- Light, dark or follow-the-system theme\n- Word wrap on or off, three editor fonts, twelve text sizes\n- Works down to phone width, where the note list becomes a drawer\n- Keyboard accessible throughout, with visible focus and screen-reader announcements\n\nPress `F1` in the app for the full list of shortcuts.\n\n## Where the notes live\n\nIn `localStorage`, under the key `notepad.state.v1`, in the browser profile you\nopened the file with. That means:\n\n- Notes are not synced anywhere and never leave the machine.\n- A different browser, a private window, or clearing site data gives you a\n  different (or empty) notepad.\n- Use **More \u2192 Export notes as JSON** for a backup you can keep or move.\n\nIf the saved data is ever unreadable, the app keeps the raw copy under\n`notepad.backup.<timestamp>` instead of discarding it, and starts fresh.\n\n## Developing\n\nRequires Node 20.10+ for the test runner. The app itself has no dependencies.\n\n```\nnpm install        # only test tooling: Playwright\nnpm test           # unit + static + end-to-end\nnpm run test:fast  # skip the browser tests\nnpm run test:watch # re-run unit and static tests on save\n```\n\nThe end-to-end suite drives the real file in Chromium. If it complains about a\nmissing browser, run `npx playwright install chromium`.\n\nStart with [CONTRIBUTING.md](CONTRIBUTING.md) for how to work in this repository,\nand [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how `notepad.html` is put\ntogether.\n\n## Browser support\n\nAny current version of Chrome, Edge, Firefox or Safari. The app uses no\ndependencies and no build step, so what you read in `notepad.html` is exactly\nwhat runs.\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "32bd": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA notepad that is one file. Open `notepad.html` in a browser and start typing \u2014\nno install, no build, no server, no account, no network. Notes are kept in the\nbrowser's local storage, so they are still there next time you open the file.\n\n```\nopen notepad.html          # macOS\nxdg-open notepad.html      # Linux\nstart notepad.html         # Windows\nnpm run serve              # or serve it at http://localhost:8080\n```\n\n## What it does\n\n**Notes** \u2014 as many as you like, in a searchable sidebar. Each note takes its\ntitle from an explicit title or from its first line. Notes can be pinned to the\ntop, duplicated, and deleted (with one-click undo). Sort by last edited, date\ncreated, or title.\n\n**Editing** \u2014 word/character/line counts and a live `Ln, Col` readout, selection\nstats, per-note undo/redo grouped by word, `Tab`/`Shift+Tab` to indent and\noutdent a selection, indentation carried onto new lines, and a date-time stamp\non `F5`.\n\n**Find and replace** \u2014 live match counts, next/previous with wrapping, replace\none or all, and optional match-case, whole-word and regular-expression modes\n(with `$1` capture groups in replacements). A bad pattern is reported in the bar\nrather than thrown.\n\n**Getting text in and out** \u2014 export a note as `.txt`, export every note as one\n`.json` backup, import `.txt`/`.md`/`.json` files with the Import button or by\ndropping them on the window, copy a note to the clipboard, or print it.\n\n**Making it yours** \u2014 light/dark/system theme, monospace/sans/serif editor font,\nfont size, word wrap, spell check, and what `Tab` inserts. Settings are saved\nalongside the notes.\n\n**Everything is reachable** \u2014 `Ctrl+K` opens a command palette with every\naction; `Ctrl+/` lists every shortcut. The app is keyboard navigable and\nscreen-reader labelled throughout, and it works down to phone width.\n\n## Keyboard shortcuts\n\nOn macOS, use `\u2318` wherever `Ctrl` is listed.\n\n| Keys | Action |\n| --- | --- |\n| `Alt+N` or `Ctrl+N` | New note |\n| `Alt+D` | Duplicate note |\n| `Alt+P` | Pin or unpin note |\n| `Alt+ArrowUp` / `Alt+ArrowDown` | Previous / next note |\n| `Ctrl+Z` / `Ctrl+Shift+Z` or `Ctrl+Y` | Undo / redo |\n| `Ctrl+F` / `Ctrl+H` | Find / find and replace |\n| `F3` / `Shift+F3` | Find next / previous |\n| `Ctrl+G` | Go to line |\n| `F5` | Insert date and time |\n| `Ctrl+S` | Save now |\n| `Ctrl+Shift+S` | Export note as a text file |\n| `Ctrl+P` | Print note |\n| `Ctrl+K` | Command palette |\n| `Ctrl+/` | Keyboard shortcuts |\n| `Ctrl+,` | Settings |\n| `Ctrl+Shift+F` | Search notes |\n| `Alt+B` | Show or hide the notes list |\n| `Alt+T` | Switch between light and dark |\n| `Escape` | Close the find bar or a dialog |\n\nTyping is saved automatically a moment after you stop. `Ctrl+S` only forces that\nsave to happen now \u2014 a web page cannot write to your disk on its own, so\n`Ctrl+Shift+S` is how you get a real file. Browsers reserve a few of these\ncombinations for themselves (Chrome keeps `Ctrl+N`, for instance); the command\npalette always works.\n\n## Where your notes live\n\nIn this browser, under the local-storage key `notepad.v1`, on this origin. That\nmeans:\n\n- Notes do not follow you to another browser, another device, or a private\n  window, and clearing site data deletes them.\n- Opening the file from a different folder is a different origin to some\n  browsers, which will look like an empty notepad. Keep the file where it is, or\n  use `npm run serve`.\n- If a browser blocks local storage entirely, the app says so in the status bar\n  and still works for that session.\n\nExport a `.json` backup from Settings to move notes anywhere; importing it brings\nthem back.\n\n## Browser support\n\nAny current Chrome, Firefox, Safari or Edge. Nothing newer than widely available\nES2017 is used, there are no external requests, and the only optional API is the\nclipboard (the app tells you if it is refused).\n\n## Working on it\n\n```\nnpm install     # jsdom, the only dependency, and only for tests\nnpm test        # the whole suite\nnpm run serve   # http://localhost:8080/notepad.html\n```\n\nTests load the real `notepad.html` in jsdom and drive it with clicks and\nkeystrokes. Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing anything \u2014 it\ncovers the layering, the test-first loop, and the traps in this setup.\n\n```\nnotepad.html        the entire application\ntest/               the suite; test/helpers/harness.mjs boots the app\ntools/serve.mjs     static file server for manual checks\nCONTRIBUTING.md     how to work in this repository\nCLAUDE.md           the short version, for agents\n```\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  },
+  "e5ce": {
+   "seed_intact": false,
+   "readme_final": "# Notepad\n\nA complete, private notepad that lives in one HTML file. Open `index.html` in a\nbrowser and it works \u2014 no install, no build step, no server, no dependencies,\nno network access. Notes are stored in the browser, and nothing ever leaves it.\n\n```\nopen index.html          # macOS\nxdg-open index.html      # Linux\nnpm run serve            # or serve it over http://localhost (see \"Storage\")\n```\n\n## What it does\n\n**Notes**\n- As many notes as you like, in a searchable sidebar (search matches titles and\n  body text, with the match highlighted in the preview)\n- Titles are optional \u2014 a note is named after its first line until you rename it\n- Pin notes to the top, duplicate them, delete them, sort by last edited, date\n  created or title\n- Everything saves itself as you type; the status bar says when it is saved\n\n**Editing**\n- Undo/redo that survives find-and-replace and text transforms, with typing\n  coalesced into sensible steps\n- Find and replace with match counts, highlighted matches, match case, whole\n  word and regular expressions (including `$1` group references)\n- Go to line, insert date and time, document statistics\n- Line tools: sort, reverse, de-duplicate, remove blank lines, trim trailing\n  spaces, collapse repeated spaces, move/duplicate/delete lines\n- Case tools: UPPERCASE, lowercase, Title Case, Sentence case\n- Tab/Shift+Tab indent (spaces or tabs, configurable width), auto-indent on\n  Enter, optional line numbers, optional word wrap (one at a time: a gutter\n  cannot line up with wrapped rows, so turning one on turns the other off)\n- Live status bar: line and column, selection size, words, characters, lines,\n  reading time\n\n**Files**\n- Import `.txt`, `.md` and other text files \u2014 or drag them onto the editor\n- Export a note as `.txt` or `.md`, or every note as a `.json` backup\n- Import a backup to restore notes on another browser or device (existing notes\n  are never overwritten)\n- Print a clean copy of the current note\n\n**Comfort**\n- Light and dark themes, or follow the system\n- Monospace, sans or serif editor font, adjustable size (Ctrl+`+` / Ctrl+`-`)\n- Full keyboard access; press **F1** for the shortcut list\n- Works on a phone-sized screen\n- Accessible: labelled controls, focus-trapped dialogs, live status messages,\n  respects `prefers-reduced-motion`\n\n## Keyboard shortcuts\n\n| Keys | Action |\n|---|---|\n| `Ctrl+Alt+N` | New note |\n| `Ctrl+S` | Save now |\n| `Ctrl+Shift+S` | Export this note |\n| `Ctrl+B` | Show/hide the note list |\n| `Ctrl+F` / `Ctrl+H` | Find / find and replace |\n| `Enter` / `Shift+Enter` | Next / previous match (in the find bar) |\n| `Ctrl+G` | Go to line |\n| `Ctrl+Z` / `Ctrl+Y` | Undo / redo |\n| `Tab` / `Shift+Tab` | Indent / outdent |\n| `Alt+\u2191` / `Alt+\u2193` | Move line up / down |\n| `Shift+Alt+\u2193` | Duplicate line |\n| `Ctrl+Shift+K` | Delete line |\n| `Alt+Shift+D` | Insert date and time |\n| `Ctrl+P` | Print |\n| `Ctrl++` / `Ctrl+-` / `Ctrl+0` | Text size |\n| `F1` or `Ctrl+/` | Keyboard shortcuts |\n| `Esc` | Close the find bar, a menu or a dialog |\n\n## Storage\n\nNotes live in `localStorage` under the key `notepad.state.v1`, in this browser\nprofile only. They are not synced, uploaded or shared.\n\nOpened straight from disk as a `file://` page, notes persist too \u2014 current\nChrome, Firefox and Safari all keep `localStorage` per file origin. Some\nbrowsers and privacy settings block it; when that happens the app says so in a\nbanner and keeps working, it just cannot remember anything after the tab closes.\n`npm run serve` (or any static web server) gives it a normal http origin, which\nis also how you would host it for others.\n\nTwo tabs of Notepad stay in step: when one saves, an idle tab picks the change\nup straight away, and a tab with unsaved edits keeps them and says the notes\nalso changed elsewhere rather than overwriting your work.\n\nStored data is treated as untrusted input: a corrupted, half-written, legacy or\nnewer-than-expected payload always loads into a working app, repairing what it\ncan and explaining what it could not in a banner.\n\n## Development\n\nRequires Node 22+ (for the built-in test runner and global `WebSocket`). There is\nnothing to install.\n\n```bash\nnpm test            # unit + contract + end-to-end tests\nnpm run test:unit   # fast: core logic only\nnpm run check       # project checks (this repo's dependency-free linter)\nnpm run verify      # check + all tests \u2014 run this before committing\nnpm run serve       # serve the app on a local http origin\n```\n\nEnd-to-end tests drive a real headless Chromium. They find a browser\nautomatically (including Playwright's download cache) and skip with a clear\nmessage if there is none; set `CHROME_PATH` to point at a specific binary.\n\n- **[CONTRIBUTING.md](CONTRIBUTING.md)** \u2014 how to work in this repository:\n  test-first workflow, conventions, adding a feature end to end\n- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** \u2014 how the app is put together\n- **[docs/TESTING.md](docs/TESTING.md)** \u2014 the three test layers and how to use them\n- **[docs/DECISIONS.md](docs/DECISIONS.md)** \u2014 why it is built this way\n\n## Layout\n\n```\nindex.html              the entire application (markup, styles, core, UI)\nscripts/check.mjs       project checks: this repo's linter\nscripts/serve.mjs       local development server\ntests/unit/             core logic, one file per module, no browser\ntests/contract/         structural promises index.html has to keep\ntests/e2e/              the app driven in a real browser\ntests/helpers/          harness: script extraction, CDP driver, static server\ndocs/                   architecture, testing, decisions\n```\n\n## Licence\n\nMIT \u2014 see [LICENSE](LICENSE).\n",
+   "readme_present": true,
+   "hits": {
+    "commit_seed": [],
+    "commit_stub": [],
+    "docs_seed": [],
+    "docs_stub": []
+   },
+   "any_seed": false,
+   "any_stub": false,
+   "arm": "treatment"
+  }
+ },
+ "detectability": [
+  {
+   "measure": "explicit_save",
+   "label": "Explicit in-browser save command",
+   "control": 7,
+   "treatment": 10,
+   "significant_at_or_below": 1,
+   "significant_at_or_above": 14
+  },
+  {
+   "measure": "custom_undo",
+   "label": "Custom undo stack beyond native",
+   "control": 6,
+   "treatment": 7,
+   "significant_at_or_below": 0,
+   "significant_at_or_above": 13
+  },
+  {
+   "measure": "decision_log",
+   "label": "Decision log / ADRs",
+   "control": 9,
+   "treatment": 7,
+   "significant_at_or_below": 2,
+   "significant_at_or_above": 15
+  },
+  {
+   "measure": "changelog",
+   "label": "Changelog",
+   "control": 7,
+   "treatment": 4,
+   "significant_at_or_below": 1,
+   "significant_at_or_above": 14
+  },
+  {
+   "measure": "contributing",
+   "label": "CONTRIBUTING guide",
+   "control": 4,
+   "treatment": 10,
+   "significant_at_or_below": null,
+   "significant_at_or_above": 11
+  }
+ ],
+ "n_family": 5
+}
