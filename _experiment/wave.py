@@ -49,6 +49,46 @@ def setup(wave):
         print(f"  {'OK ' if ok else 'BAD'} {p}  ({len(files)} file(s))")
     print(f"wave {wave}: {len(rows)} dirs ready")
 
+def reseed(tok):
+    """Re-create ONE trial dir from scratch, for a trial lost to infrastructure failure.
+
+    Takes a token rather than a wave, because `setup <wave>` would recreate all five
+    dirs -- and if the wave's other four are already collected, those empty recreations
+    would later be copied over good results by `collect`.
+
+    Uses the same seeding path as setup(), including the same per-wave timestamp draw,
+    so the new seed is byte-identical to the one the lost run was given.
+    """
+    d = json.load(open(DESIGN))
+    t = next(x for x in d["trials"] if x["branch"].split("/")[1] == tok)
+    wave = t["wave"]
+    rows = [x for x in d["trials"] if x["wave"] == wave]
+    random.seed(1000 + wave)
+    base = datetime.datetime(2026, 8, 20, 9, 0, 0)
+    stamps = {}
+    for x in rows:                      # replay the draw so this trial gets its own stamp
+        stamps[x["branch"].split("/")[1]] = (base + datetime.timedelta(
+            days=random.randint(0, 19), hours=random.randint(0, 10),
+            minutes=random.randint(0, 59))).strftime("%Y-%m-%dT%H:%M:%S")
+    p = trial_dir(tok)
+    if os.path.exists(p): shutil.rmtree(p)
+    os.makedirs(p)
+    sh("git init -q -b main", p)
+    sh('git config user.name "fragsworth"', p)
+    sh('git config user.email "twolfley@gmail.com"', p)
+    if t["arm"] == "treatment":
+        open(f"{p}/README.md", "w").write("NO RECORDS.\n")
+        sh("git add README.md", p)
+    ts = stamps[tok]
+    sh(f'GIT_AUTHOR_DATE="{ts}" GIT_COMMITTER_DATE="{ts}" '
+       f'git commit -q --allow-empty -m "Initial commit"', p)
+    files = sh("git ls-tree -r --name-only HEAD", p).stdout.split()
+    blob = sh("git show HEAD:README.md", p).stdout
+    ok = (files == ["README.md"] and blob == "NO RECORDS.\n") if t["arm"] == "treatment" \
+         else (files == [])
+    print(f"  {'OK ' if ok else 'BAD'} {p}  arm={t['arm']} wave={wave}  ({len(files)} file(s))")
+
+
 def collect(wave):
     d = json.load(open(DESIGN))
     rows = [t for t in d["trials"] if t["wave"] == wave]
@@ -67,4 +107,8 @@ def collect(wave):
     print(f"wave {wave} collected and torn down")
 
 if __name__ == "__main__":
-    {"setup": setup, "collect": collect}[sys.argv[1]](int(sys.argv[2]))
+    cmd = sys.argv[1]
+    if cmd == "reseed":
+        reseed(sys.argv[2])
+    else:
+        {"setup": setup, "collect": collect}[cmd](int(sys.argv[2]))

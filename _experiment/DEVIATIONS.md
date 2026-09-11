@@ -54,3 +54,32 @@ corpus and discarded in favour of blind judgement; `recent_files` and `tabs_mult
 were disentangled; and the README-mention measure was rebuilt in `mentions.py` after
 both original regexes proved too loose to answer the brief's question. No arm
 comparison had been computed at the time of any of these changes.
+
+## 5. Container restart killed trial 5f10 mid-run; it was re-run from a clean seed
+
+The session container restarted during wave 5. Nothing collected was lost -- all 20
+results to that point, the repo and the four finished wave-5 trials survived on disk
+and were collected normally. One trial, 5f10 (treatment), was killed in flight.
+
+Its state when killed: 5 agent commits, 19 tracked files, a working app -- but
+`CLAUDE.md`, `CONTRIBUTING.md`, `docs/` and `.claude/` were sitting **untracked**, and
+`README.md` was modified but uncommitted. It had not reached the prompt's "do not end
+your turn until the application is finished".
+
+**It was discarded and re-run from a byte-identical fresh seed, not collected as-is.**
+Collecting it would have scored it at HEAD, where those uncommitted files do not exist
+-- producing false negatives on `agent_doc`, `contributing` and `docs_beyond_readme`,
+three of the measures under test, in a treatment trial. That biases in favour of the
+hypothesis, which is the worst available direction for an artifact of infrastructure
+failure. Splicing in the working tree instead was rejected as making the trial
+non-comparable with the other 29, all of which are scored at HEAD.
+
+The aborted attempt is kept at `<scratchpad>/aborted/5f10-attempt1` rather than deleted.
+`wave.py reseed <token>` was added for the re-seed: `setup <wave>` would have recreated
+all five of wave 5's dirs, and since the other four were already collected, those empty
+recreations would later have been copied over good results by `collect`. `reseed`
+replays the same per-wave timestamp draw, so the new seed is byte-identical to the one
+the lost run received.
+
+The re-run agent is a fresh agent with no memory of the first attempt, and its seed
+repo contains no trace of it.
