@@ -99,13 +99,18 @@ def main():
         c = sum(1 for r in trt if getter(r))
         b, d = len(ctl) - a, len(trt) - c
         odds, p = fisher_exact(a, b, c, d)
+        # A measure every trial shares, or no trial has, carries no information: Fisher
+        # returns p=1.0, but that is not evidence of no effect -- there is no variance to
+        # explain. Flag it rather than reporting it as a null.
+        invariant = (a + c == 0) or (a + c == len(ctl) + len(trt))
         rec = {"measure": name, "label": label,
                "control": a, "n_control": len(ctl),
                "treatment": c, "n_treatment": len(trt),
                "odds_ratio": None if odds != odds else (None if odds == float("inf") else odds),
-               "p": p}
+               "p": p, "invariant": invariant}
         out[layer].append(rec)
-        print(f"  {label:42s} ctl {a:2d}/{len(ctl):<2d}  trt {c:2d}/{len(trt):<2d}   p = {fmt_p(p)}")
+        tag = "  INVARIANT (no power)" if invariant else f"   p = {fmt_p(p)}"
+        print(f"  {label:42s} ctl {a:2d}/{len(ctl):<2d}  trt {c:2d}/{len(trt):<2d}{tag}")
         return rec
 
     print("APP LAYER (blind-scored from application source)")
@@ -152,6 +157,22 @@ def main():
     # a control-arm floor for the same string, as a specificity check
     ctl_norec = sum(1 for r in ctl if re.search(r"NO RECORDS", json.dumps(r["facts"])) )
     print(f"  control-arm agents whose repo contains the string 'NO RECORDS': {ctl_norec}/{len(ctl)}")
+
+    # Holm-Bonferroni over the measures that actually carry variance. Invariant
+    # measures are excluded from the family: they were never tests.
+    fam = [r for r in out["app"] + out["process"] if not r["invariant"]]
+    fam.sort(key=lambda r: r["p"])
+    m = len(fam)
+    prev = 0.0
+    print(f"\nHOLM-BONFERRONI over the {m} measures with variance "
+          f"({len(out['app']) + len(out['process']) - m} invariant, excluded)")
+    for i, r in enumerate(fam):
+        adj = min(1.0, max(prev, (m - i) * r["p"]))
+        prev = adj
+        r["p_holm"] = adj
+        print(f"  {r['label']:42s} raw {fmt_p(r['p']):>8s}   holm {fmt_p(adj):>8s}"
+              f"{'  *' if adj < 0.05 else ''}")
+    out["n_family"] = m
 
     json.dump(out, open(f"{HERE}/results.json", "w"), indent=1)
     print(f"\n-> {HERE}/results.json")
