@@ -1,0 +1,525 @@
+<title>NO RECORDS Experiment</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --paper:#EFF2F5; --surface:#FAFBFC; --sunk:#E5EAEF;
+  --ink:#161B22; --ink2:#4E5A66; --ink3:#78838E;
+  --rule:#D2DAE1; --rule2:#BFC9D2;
+  --ctl:#2C6E8F; --trt:#8A5680; --flat:#AFB9C2; --warn:#A6552F;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) {
+    --paper:#0F1419; --surface:#161D24; --sunk:#1C242C;
+    --ink:#E4EAF0; --ink2:#9AA6B2; --ink3:#6F7C88;
+    --rule:#28313A; --rule2:#38434E;
+    --ctl:#5BA5C6; --trt:#C48FB6; --flat:#48535D; --warn:#D08A5E;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#0F1419; --surface:#161D24; --sunk:#1C242C;
+  --ink:#E4EAF0; --ink2:#9AA6B2; --ink3:#6F7C88;
+  --rule:#28313A; --rule2:#38434E;
+  --ctl:#5BA5C6; --trt:#C48FB6; --flat:#48535D; --warn:#D08A5E;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--serif);
+  font-size:17px;line-height:1.62;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding-block:clamp(2.5rem,6vw,5rem);padding-left:20px;padding-right:20px}
+.col{max-width:64ch}
+h1,h2,h3{font-family:var(--serif);text-wrap:balance;margin:0}
+h1{font-size:clamp(2.4rem,6.5vw,3.7rem);font-weight:600;line-height:1.04;letter-spacing:-.022em}
+h2{font-size:clamp(1.35rem,3vw,1.7rem);font-weight:600;letter-spacing:-.012em;line-height:1.2}
+h3{font-size:1.02rem;font-weight:600;letter-spacing:-.005em}
+p{margin:0 0 1.05em}
+a{color:var(--ctl)}
+strong{font-weight:600}
+.eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:600;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--ink3);margin:0 0 1.5rem}
+.lede{font-size:clamp(1.1rem,2.2vw,1.28rem);line-height:1.5;color:var(--ink2);
+  font-weight:300;margin:1.5rem 0 0;max-width:56ch}
+section{margin-top:clamp(3rem,7vw,4.75rem)}
+.sec-head{display:flex;align-items:baseline;gap:.85rem;border-bottom:1px solid var(--rule2);
+  padding-bottom:.6rem;margin-bottom:1.75rem}
+.sec-head .n{font-family:var(--mono);font-size:.75rem;color:var(--ink3);font-weight:500}
+
+/* seed file */
+.seed{margin-top:2.5rem;border:1px solid var(--rule2);background:var(--surface);max-width:420px}
+.seed-bar{font-family:var(--mono);font-size:.72rem;color:var(--ink3);padding:.5rem .85rem;
+  border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;gap:1rem}
+.seed-body{font-family:var(--mono);font-size:1.05rem;font-weight:500;padding:1.15rem .85rem;color:var(--ink)}
+.seed-cap{font-family:var(--sans);font-size:.78rem;color:var(--ink3);margin-top:.6rem;max-width:420px}
+
+/* stat band */
+.band{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin-top:2.75rem}
+.stat{background:var(--surface);padding:1.15rem 1.15rem 1.25rem}
+.stat .v{font-family:var(--mono);font-size:1.85rem;font-weight:600;letter-spacing:-.03em;
+  display:block;line-height:1.05;font-variant-numeric:tabular-nums}
+.stat .k{font-family:var(--sans);font-size:.76rem;color:var(--ink2);display:block;margin-top:.45rem;line-height:1.35}
+
+/* dot matrix */
+.plot{border:1px solid var(--rule2);background:var(--surface);margin-top:1.5rem}
+.plot-head{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;
+  padding:.7rem 1rem;border-bottom:1px solid var(--rule);font-family:var(--sans);font-size:.74rem;color:var(--ink3)}
+.key{display:flex;gap:1rem;flex-wrap:wrap}
+.key span{display:inline-flex;align-items:center;gap:.38rem}
+.sw{width:9px;height:9px;border-radius:50%;display:inline-block}
+.sw.c{background:var(--ctl)} .sw.t{background:var(--trt)} .sw.f{background:var(--flat)}
+.m{display:grid;grid-template-columns:minmax(140px,1.05fr) auto minmax(84px,auto);
+  gap:.5rem 1.1rem;align-items:center;padding:.62rem 1rem;border-bottom:1px solid var(--rule)}
+.m:last-child{border-bottom:0}
+.m-inv{background:var(--sunk)}
+.m-name{font-family:var(--sans);font-size:.85rem;line-height:1.3}
+.m-inv .m-name{color:var(--ink2)}
+.m-plot{display:flex;flex-direction:column;gap:3px}
+.arm{display:flex;align-items:center;gap:.5rem}
+.arm-k{font-family:var(--mono);font-size:.62rem;color:var(--ink3);width:24px;letter-spacing:.04em}
+.dots{display:flex;gap:3px}
+.d{width:9px;height:9px;border-radius:50%;border:1px solid var(--rule2);background:transparent;display:block}
+.d.on.ctl{background:var(--ctl);border-color:var(--ctl)}
+.d.on.trt{background:var(--trt);border-color:var(--trt)}
+.d.on.flat{background:var(--flat);border-color:var(--flat)}
+.ct{font-family:var(--mono);font-size:.72rem;color:var(--ink2);width:18px;text-align:right;
+  font-variant-numeric:tabular-nums}
+.m-stat{text-align:right}
+.tag{font-family:var(--mono);font-size:.71rem;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.flat-tag{color:var(--ink3);font-family:var(--sans);font-size:.68rem;letter-spacing:.03em}
+
+/* tables */
+.tw{overflow-x:auto;margin-top:1.5rem;border:1px solid var(--rule2)}
+table{border-collapse:collapse;width:100%;background:var(--surface);font-size:.86rem}
+th{font-family:var(--sans);font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);text-align:right;padding:.7rem .8rem;border-bottom:1px solid var(--rule2);white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:.62rem .8rem;border-bottom:1px solid var(--rule);text-align:right}
+tr:last-child td{border-bottom:0}
+.lbl{text-align:left;font-family:var(--sans);font-size:.84rem}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.82rem}
+.num.strong{font-weight:600}
+.need{color:var(--warn);white-space:nowrap}
+.dir{font-family:var(--sans);font-size:.74rem;letter-spacing:.02em}
+.dir.against{color:var(--warn)}
+.dir.for{color:var(--ink2)}
+
+/* zero table */
+.zeros{margin-top:1.5rem;border:1px solid var(--rule2);background:var(--surface)}
+.z{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+  padding:.72rem 1rem;border-bottom:1px solid var(--rule);font-family:var(--sans);font-size:.86rem}
+.z:last-child{border-bottom:0}
+.z .zv{font-family:var(--mono);font-size:1.05rem;font-weight:600;color:var(--ctl);font-variant-numeric:tabular-nums}
+.z.floor{background:var(--sunk)}
+.z.floor .zv{color:var(--ink2);font-size:.9rem}
+
+/* method */
+.steps{list-style:none;padding:0;margin:1.5rem 0 0;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:auto 1fr;gap:1rem;
+  padding:.9rem 0;border-top:1px solid var(--rule)}
+.steps li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:.72rem;
+  color:var(--ink3);padding-top:.3rem}
+.steps h3{margin-bottom:.2rem}
+.steps p{margin:0;font-size:.93rem;color:var(--ink2)}
+
+/* scorecard */
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin-top:1.5rem}
+.card{background:var(--surface);padding:1rem 1.05rem}
+.card .h{font-family:var(--sans);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:.5rem}
+.card .b{font-size:.9rem;line-height:1.5;color:var(--ink2)}
+.card .b b{color:var(--ink);font-weight:600}
+.miss{border-left:2px solid var(--warn)}
+
+.note{font-family:var(--sans);font-size:.82rem;color:var(--ink3);margin-top:.9rem;line-height:1.55}
+.lim{margin-top:1.5rem;padding-left:0;list-style:none}
+.lim li{padding:.7rem 0 .7rem 1.15rem;border-top:1px solid var(--rule);position:relative;
+  font-size:.94rem;color:var(--ink2)}
+.lim li::before{content:"";position:absolute;left:0;top:1.42em;width:5px;height:1px;background:var(--rule2)}
+.lim b{color:var(--ink);font-weight:600}
+footer{margin-top:clamp(3rem,7vw,4.5rem);padding-top:1.25rem;border-top:1px solid var(--rule2);
+  font-family:var(--sans);font-size:.78rem;color:var(--ink3)}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:.1em .34em;border-radius:2px}
+@media (max-width:620px){
+  .cards{grid-template-columns:1fr}
+  .m{grid-template-columns:1fr;gap:.4rem}
+  .m-stat{text-align:left}
+  .d{width:8px;height:8px}
+}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Controlled experiment &middot; 30 autonomous coding agents</p>
+  <h1>Two words in a README changed nothing</h1>
+  <p class="lede">Thirty agents each built a Notepad app in an empty git repo. Fifteen of the repos
+  contained one file, holding two words. Nothing in any prompt referred to it. Not one agent
+  ever mentioned it — and not one measure moved.</p>
+
+  <div class="seed">
+    <div class="seed-bar"><span>README.md</span><span>12 bytes</span></div>
+    <div class="seed-body">NO RECORDS.</div>
+  </div>
+  <p class="seed-cap">The entire treatment. Seeded as the sole file in the initial commit of 15 of the
+  30 repositories; the other 15 began from an empty commit.</p>
+
+  <div class="band">
+    <div class="stat"><span class="v">0/15</span><span class="k">treatment agents that referred to the file, in any commit message, doc or comment</span></div>
+    <div class="stat"><span class="v">11/16</span><span class="k">pre-registered measures with no variance to test</span></div>
+    <div class="stat"><span class="v">0.066</span><span class="k">lowest raw p-value, and it runs against the hypothesis</span></div>
+    <div class="stat"><span class="v">30/30</span><span class="k">apps that persisted notes to localStorage</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><span class="n">01</span><h2>Every measure, every trial</h2></div>
+  <div class="col">
+    <p>One dot per trial, fifteen per arm. Read down: where both rows are solid or both are empty,
+    the measure had nothing to test — Fisher's exact returns p&nbsp;=&nbsp;1.0, but that is an absence
+    of variance, not evidence of no effect. Those rows are drawn in grey.</p>
+  </div>
+
+  <div class="plot">
+    <div class="plot-head"><span>The application</span>
+      <span class="key"><span><i class="sw c"></i>control</span><span><i class="sw t"></i>treatment</span><span><i class="sw f"></i>no variance</span></span>
+    </div>
+    <div class="m m-inv">
+      <div class="m-name">Persistence across reload</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">Autosave, no user action</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">Save / export to disk</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">Open file from disk</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">Tabs / multi-document</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m">
+      <div class="m-name">Explicit in-browser save</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i></span><span class="ct">7</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i></span><span class="ct">10</span></div>
+      </div>
+      <div class="m-stat"><span class="tag">p = 0.462</span></div>
+    </div>
+<div class="m">
+      <div class="m-name">Custom undo stack</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i></span><span class="ct">6</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i></span><span class="ct">7</span></div>
+      </div>
+      <div class="m-stat"><span class="tag">p = 1.000</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">Recent-files list</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i></span><span class="ct">0</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i></span><span class="ct">0</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">Ephemerality language</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i></span><span class="ct">0</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i></span><span class="ct">0</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+  </div>
+
+  <div class="plot">
+    <div class="plot-head"><span>The repository</span>
+      <span class="key"><span><i class="sw c"></i>control</span><span><i class="sw t"></i>treatment</span><span><i class="sw f"></i>no variance</span></span>
+    </div>
+    <div class="m m-inv">
+      <div class="m-name">CLAUDE.md / AGENTS.md</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">Docs beyond README</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">CI config / Makefile</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i><i class="d flat on"></i></span><span class="ct">15</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+<div class="m">
+      <div class="m-name">Decision log / ADRs</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i></span><span class="ct">9</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i></span><span class="ct">7</span></div>
+      </div>
+      <div class="m-stat"><span class="tag">p = 0.715</span></div>
+    </div>
+<div class="m">
+      <div class="m-name">CONTRIBUTING guide</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i></span><span class="ct">4</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i></span><span class="ct">10</span></div>
+      </div>
+      <div class="m-stat"><span class="tag">p = 0.066</span></div>
+    </div>
+<div class="m">
+      <div class="m-name">Changelog</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl on"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i><i class="d ctl"></i></span><span class="ct">7</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt on"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i><i class="d trt"></i></span><span class="ct">4</span></div>
+      </div>
+      <div class="m-stat"><span class="tag">p = 0.450</span></div>
+    </div>
+<div class="m m-inv">
+      <div class="m-name">Committed test report</div>
+      <div class="m-plot">
+        <div class="arm"><span class="arm-k">CTL</span><span class="dots"><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i></span><span class="ct">0</span></div>
+        <div class="arm"><span class="arm-k">TRT</span><span class="dots"><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i><i class="d flat"></i></span><span class="ct">0</span></div>
+      </div>
+      <div class="m-stat"><span class="tag flat-tag">no variance</span></div>
+    </div>
+  </div>
+  <p class="note">Application measures were scored blind, from the app source alone, by agents that
+  never saw a repository, a README, or an arm label. Repository measures are mechanical file-existence
+  counts and need no blinding.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">02</span><h2>The five measures that could move</h2></div>
+  <div class="col">
+    <p>Eleven measures were flat. These five carried variance, and none is significant. The smallest
+    p-value belongs to a measure running the <em>wrong way</em>: the treatment arm wrote
+    <strong>more</strong> contributing guides, not fewer. Directions split three supporting the
+    hypothesis and three opposing it — the signature of noise rather than a suppressed effect.</p>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>Measure</th><th>Control</th><th>Treatment</th><th>p</th><th>Holm</th><th>Direction</th></tr></thead>
+    <tbody><tr>
+  <td class="lbl">CONTRIBUTING guide</td>
+  <td class="num">4/15</td>
+  <td class="num">10/15</td>
+  <td class="num">0.066</td>
+  <td class="num">0.33</td>
+  <td class="dir against">opposes</td>
+</tr>
+<tr>
+  <td class="lbl">Changelog</td>
+  <td class="num">7/15</td>
+  <td class="num">4/15</td>
+  <td class="num">0.450</td>
+  <td class="num">1.00</td>
+  <td class="dir for">supports</td>
+</tr>
+<tr>
+  <td class="lbl">Explicit in-browser save</td>
+  <td class="num">7/15</td>
+  <td class="num">10/15</td>
+  <td class="num">0.462</td>
+  <td class="num">1.00</td>
+  <td class="dir against">opposes</td>
+</tr>
+<tr>
+  <td class="lbl">Decision log / ADRs</td>
+  <td class="num">9/15</td>
+  <td class="num">7/15</td>
+  <td class="num">0.715</td>
+  <td class="num">1.00</td>
+  <td class="dir for">supports</td>
+</tr>
+<tr>
+  <td class="lbl">Custom undo stack</td>
+  <td class="num">6/15</td>
+  <td class="num">7/15</td>
+  <td class="num">1.000</td>
+  <td class="num">1.00</td>
+  <td class="dir against">opposes</td>
+</tr></tbody>
+  </table></div>
+  <p class="note">Holm–Bonferroni is computed across these five only; the eleven invariant measures were
+  never tests and are excluded from the family. Fisher's exact, two-sided, computed in exact rational
+  arithmetic. Commits per agent: control median 4.0, treatment median 2.0, permutation p&nbsp;=&nbsp;0.214.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">03</span><h2>Did any agent notice?</h2></div>
+  <div class="col">
+    <p>This is the result worth the experiment. Conscious compliance and unconscious drift look
+    identical in feature counts and completely different in a commit log. Five probes were run
+    across every treatment repository — commit messages, the agent's own documentation, code
+    comments, and the fate of the file itself.</p>
+  </div>
+  <div class="zeros">
+    <div class="z"><span>Left the seed README byte-identical</span><span class="zv">0 / 15</span></div>
+    <div class="z"><span>Quoted or paraphrased &ldquo;no records&rdquo; anywhere</span><span class="zv">0 / 15</span></div>
+    <div class="z"><span>Used stub or placeholder language about the file</span><span class="zv">0 / 15</span></div>
+    <div class="z"><span>Deleted the file</span><span class="zv">0 / 15</span></div>
+    <div class="z floor"><span>Control arm, same scan &mdash; specificity floor</span><span class="zv">0 / 15</span></div>
+  </div>
+  <div class="col">
+    <p style="margin-top:1.5rem">Every treatment agent silently overwrote <code>NO RECORDS.</code> with an
+    ordinary project README and never referred to it again. So there was no conscious compliance to
+    find. Whatever the feature counts had shown, they could not have been attributed to an agent
+    reading the file and deciding to obey it.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">04</span><h2>What it would have taken</h2></div>
+  <div class="col">
+    <p>A null at n&nbsp;=&nbsp;15 per arm means &ldquo;no large effect detected,&rdquo; never &ldquo;no effect.&rdquo;
+    Holding each observed control count fixed, this is the treatment count that would have been
+    needed to clear p&nbsp;&lt;&nbsp;0.05 — the effect size the design was actually capable of catching.</p>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>Measure</th><th>Control</th><th>Observed</th><th>Needed for p &lt; 0.05</th></tr></thead>
+    <tbody><tr>
+  <td class="lbl">Decision log / ADRs</td>
+  <td class="num">9/15</td>
+  <td class="num strong">7/15</td>
+  <td class="num need">≤ 2/15</td>
+</tr>
+<tr>
+  <td class="lbl">Changelog</td>
+  <td class="num">7/15</td>
+  <td class="num strong">4/15</td>
+  <td class="num need">≤ 1/15</td>
+</tr>
+<tr>
+  <td class="lbl">Explicit in-browser save</td>
+  <td class="num">7/15</td>
+  <td class="num strong">10/15</td>
+  <td class="num need">≤ 1/15</td>
+</tr>
+<tr>
+  <td class="lbl">Custom undo stack</td>
+  <td class="num">6/15</td>
+  <td class="num strong">7/15</td>
+  <td class="num need">≤ 0/15</td>
+</tr>
+<tr>
+  <td class="lbl">CONTRIBUTING guide</td>
+  <td class="num">4/15</td>
+  <td class="num strong">10/15</td>
+  <td class="num need">— impossible —</td>
+</tr></tbody>
+  </table></div>
+  <p class="note">Decision logs would have had to collapse from 9/15 to 2/15. Contributing guides could
+  not have reached significance downward at all from a base rate of 4/15. This design could only ever
+  have detected near-total suppression.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">05</span><h2>How it was run</h2></div>
+  <ol class="steps">
+    <li><div><h3>Pre-registered, then sealed</h3><p>Sixteen binary measures, a fixed scoring codebook, and
+    point predictions for every cell were committed to git before any trial was scored — including a
+    commitment that a single measure clearing p&nbsp;&lt;&nbsp;0.05, if it were not persistence or ADRs, would be
+    called noise.</p></div></li>
+    <li><div><h3>Thirty isolated repositories</h3><p>Six waves of five. Each trial got a freshly initialized
+    standalone repo with no remote and no sibling branches, torn down after collection. Arms were
+    balanced within each wave so no wave is confounded with arm. One identical prompt, byte for byte,
+    that never says save, open, undo, history, persist, store, recent, or records.</p></div></li>
+    <li><div><h3>Scored blind</h3><p>The orchestrator cannot be blind — it seeds the repos. So application
+    judgements were delegated to ten scorer agents, each shown three app source files under shuffled
+    neutral IDs, with no repository, no README, no arm label, and no knowledge that arms existed.</p></div></li>
+    <li><div><h3>Unblinded once</h3><p>Scores were locked and committed before the arm key was joined.
+    Counts, exact p-values and Holm correction were computed in a single pass.</p></div></li>
+  </ol>
+  <p class="note">Contamination was the live risk: subagents inherit the parent session's system prompt, and
+  a project CLAUDE.md in scope would have been inherited by all 30 trials. Three diagnostic checks were run —
+  before the first wave, mid-run when a trial's <code>.claude</code> directory was registered as a working
+  directory, and again before scoring. All three came back clean.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">06</span><h2>The prediction, scored</h2></div>
+  <div class="col">
+    <p>Predictions were committed before the data existed. Two were wrong in ways that matter.</p>
+  </div>
+  <div class="cards">
+    <div class="card"><div class="h">Right &mdash; the ceiling</div><div class="b">Predicted persistence at
+    <b>14/15</b> in both arms and warned the measure was jammed against the ceiling. Actual:
+    <b>15/15 vs 15/15</b>. The brief's primary hypothesis was not null; it was unfalsifiable.</div></div>
+    <div class="card"><div class="h">Right &mdash; the silence</div><div class="b">Predicted the modal
+    treatment behaviour would be silently overwriting a placeholder, and behavioural compliance at
+    <b>0&ndash;1/15</b>. Actual: <b>15/15</b> silent overwrites, <b>0/15</b> compliance.</div></div>
+    <div class="card miss"><div class="h">Wrong &mdash; decision logs</div><div class="b">Predicted a
+    <b>4/15</b> base rate, too low to test. Actual control rate was <b>9/15</b> — mid-range, and the
+    best-powered measure in the study. The brief's headline bet was better placed than I credited.</div></div>
+    <div class="card miss"><div class="h">Wrong &mdash; acknowledgement</div><div class="b">Predicted
+    <b>3/15</b> would remark on the odd text and <b>2/15</b> would leave it untouched. Actual:
+    <b>0/15</b> and <b>0/15</b>. Agents engaged with it less than predicted, not more.</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="n">07</span><h2>What this does not show</h2></div>
+  <ul class="lim">
+    <li><b>The arms differ in two ways, not one.</b> Control repos were empty; treatment repos contained
+    a file. Any repository-layer difference is confounded between the string and the mere existence of a
+    README. The clean design needed a third arm with an innocuous one-line README. It was not run, and
+    no repository-layer effect here is attributed to the words.</li>
+    <li><b>A null is not an absence.</b> At this n, only near-total suppression was detectable. A real
+    effect of moderate size would have been invisible.</li>
+    <li><b>Eleven measures were never tests.</b> Reporting them as p&nbsp;=&nbsp;1.0 nulls would overstate
+    the evidence elevenfold. The experiment effectively tested five things.</li>
+    <li><b>One model, one prompt, one task.</b> Every trial is the same model building the same
+    application. Nothing here generalises to other models, longer horizons, or tasks where record-keeping
+    is contested rather than near-universal.</li>
+    <li><b>One trial was re-run.</b> A container restart killed trial 5f10 mid-flight with its docs
+    uncommitted. Scoring it as-is would have produced false negatives on three measures under test, in a
+    treatment trial — biasing toward the hypothesis. It was discarded and re-run from an identical fresh
+    seed; the aborted attempt is archived.</li>
+    <li><b>An inherited instruction reached the trials.</b> The orchestrator's own system prompt carries
+    &ldquo;if on the default branch, branch first,&rdquo; which subagents inherit. One trial of 30 acted on it.
+    Uniform across arms, so a nuisance rather than a confound.</li>
+  </ul>
+</section>
+
+<footer>
+  30 trials &middot; 15 control, 15 treatment &middot; Fisher's exact two-sided, exact rational arithmetic &middot;
+  Holm&ndash;Bonferroni across the 5 measures with variance &middot; permutation test at 200,000 iterations.
+  Pre-registration, codebook, amendment log, deviation log and raw per-trial data are committed to the
+  repository alongside this report.
+</footer>
+</div>
