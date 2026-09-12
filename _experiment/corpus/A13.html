@@ -1,0 +1,3397 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notepad</title>
+<meta name="description" content="A fast, private, single-file notepad that keeps your notes in your own browser.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1b19" media="(prefers-color-scheme: dark)">
+<style>
+/* ==========================================================================
+   Tokens. Light is the base; dark is layered on top for an explicit choice or
+   for "system" when the OS asks for dark.
+   ========================================================================== */
+:root {
+  --bg: #f6f6f4;
+  --bg-raised: #ffffff;
+  --bg-sunken: #ececea;
+  --bg-hover: #e6e6e2;
+  --bg-active: #dcdcd6;
+  --text: #1c1c1a;
+  --text-soft: #5c5c56;
+  --text-faint: #86867e;
+  --border: #d7d7d1;
+  --border-strong: #bcbcb4;
+  --accent: #1f6feb;
+  --accent-text: #ffffff;
+  --accent-soft: #dbe8fd;
+  --danger: #b42318;
+  --danger-soft: #fdeceb;
+  --focus: #1f6feb;
+  --shadow: 0 1px 2px rgba(20, 20, 18, 0.08), 0 8px 24px rgba(20, 20, 18, 0.10);
+  --radius: 8px;
+  --radius-sm: 5px;
+  --editor-font-size: 15px;
+  --editor-font: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color-scheme: light;
+}
+
+/* "system" defers to the OS; an explicit choice always wins over it. */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --bg: #1b1b19;
+    --bg-raised: #232322;
+    --bg-sunken: #151514;
+    --bg-hover: #2e2e2c;
+    --bg-active: #3a3a37;
+    --text: #ececea;
+    --text-soft: #b0b0a8;
+    --text-faint: #86867e;
+    --border: #353532;
+    --border-strong: #4b4b47;
+    --accent: #5b9dff;
+    --accent-text: #0d1b30;
+    --accent-soft: #23324a;
+    --danger: #ff8f85;
+    --danger-soft: #3a1f1d;
+    --focus: #7fb2ff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 28px rgba(0, 0, 0, 0.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1b1b19;
+  --bg-raised: #232322;
+  --bg-sunken: #151514;
+  --bg-hover: #2e2e2c;
+  --bg-active: #3a3a37;
+  --text: #ececea;
+  --text-soft: #b0b0a8;
+  --text-faint: #86867e;
+  --border: #353532;
+  --border-strong: #4b4b47;
+  --accent: #5b9dff;
+  --accent-text: #0d1b30;
+  --accent-soft: #23324a;
+  --danger: #ff8f85;
+  --danger-soft: #3a1f1d;
+  --focus: #7fb2ff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* ============================================================ base ======= */
+* { box-sizing: border-box; }
+
+/*
+ * The app hides panels by setting `.hidden`. Several of them are flex
+ * containers, and a class that sets `display` outranks the user-agent rule for
+ * [hidden] — so state this once, loudly, or hidden things stay on screen.
+ */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font: 14px/1.5 var(--ui-font);
+  color: var(--text);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+/* ============================================================ layout ===== */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 6px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  min-height: 38px;
+  flex-wrap: wrap;
+}
+
+.doc-title {
+  margin: 0 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-soft);
+  max-width: 42vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+.doc-title:hover { background: var(--bg-hover); color: var(--text); }
+
+.workspace {
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+/* ============================================================ menubar ==== */
+.menubar { display: flex; align-items: center; gap: 1px; }
+
+.menu-title {
+  background: none;
+  border: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text);
+}
+.menu-title:hover { background: var(--bg-hover); }
+.menu-title[aria-expanded="true"] { background: var(--bg-active); }
+
+.menu-holder { position: relative; }
+
+.menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 40;
+  min-width: 244px;
+  margin-top: 4px;
+  padding: 5px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 6px 8px 6px 26px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+}
+.menu-item:hover, .menu-item:focus-visible { background: var(--bg-hover); outline: none; }
+.menu-item:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
+.menu-item[aria-checked="true"]::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 9px;
+  height: 5px;
+  border: 2px solid currentColor;
+  border-top: 0;
+  border-right: 0;
+  transform: translateY(-70%) rotate(-45deg);
+}
+.menu-item[data-dangerous="true"] { color: var(--danger); }
+.menu-accel {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.menu-sep { height: 1px; margin: 5px 6px; background: var(--border); }
+
+.icon-button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  cursor: pointer;
+  color: var(--text-soft);
+}
+.icon-button:hover { background: var(--bg-hover); color: var(--text); }
+
+/* ============================================================ sidebar ==== */
+.sidebar {
+  width: 274px;
+  flex: 0 0 274px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-sunken);
+  border-right: 1px solid var(--border);
+}
+[data-sidebar="off"] .sidebar { display: none; }
+
+.sidebar-tools {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.button {
+  padding: 6px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.button:hover { background: var(--bg-hover); }
+.button-primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.button-primary:hover { filter: brightness(1.07); }
+.button-danger { color: var(--danger); }
+
+.sidebar-meta {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 10px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.note-row {
+  position: relative;
+  padding: 8px 30px 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.note-row + .note-row { margin-top: 2px; }
+.note-row:hover { background: var(--bg-hover); }
+.note-row[aria-selected="true"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.note-row:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+.note-row-title {
+  font-weight: 600;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-row-snippet,
+.note-row-meta {
+  font-size: 12px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-row-meta { font-size: 11px; margin-top: 2px; }
+.note-row[data-pinned="true"] .note-row-title::before {
+  content: "\2605\00a0";
+  color: var(--accent);
+}
+
+.row-delete {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  font-size: 15px;
+  line-height: 1;
+}
+.note-row:hover .row-delete,
+.row-delete:focus-visible { opacity: 1; }
+.row-delete:hover { background: var(--danger-soft); color: var(--danger); }
+
+.empty-note {
+  margin: 10px;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+/* ============================================================ editor ===== */
+.editor-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-raised);
+}
+
+.editor {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  resize: none;
+  border: 0;
+  padding: 16px 18px 24px;
+  background: var(--bg-raised);
+  color: var(--text);
+  font-family: var(--editor-font);
+  font-size: var(--editor-font-size);
+  line-height: 1.6;
+  tab-size: 4;
+  outline: none;
+}
+[data-font="sans"] .editor { font-family: var(--ui-font); }
+[data-font="serif"] .editor { font-family: Georgia, Cambria, "Times New Roman", serif; }
+
+/* ============================================================ find bar === */
+.findbar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-sunken);
+  border-bottom: 1px solid var(--border);
+}
+.findbar-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.findbar input[type="text"] {
+  flex: 1 1 150px;
+  min-width: 0;
+  padding: 5px 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.findbar .button { padding: 5px 9px; }
+.find-toggles { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.find-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.find-status {
+  font-size: 12px;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+  min-width: 6ch;
+}
+.find-status[data-error="true"] { color: var(--danger); }
+
+/* ============================================================ status ===== */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-soft);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+}
+.statusbar .spacer { margin-left: auto; }
+#status-save[data-state="error"] { color: var(--danger); }
+
+/* ============================================================ dialogs ==== */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 14, 0.42);
+  z-index: 50;
+}
+
+.dialog {
+  position: fixed;
+  z-index: 60;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(80vh, 620px);
+  overflow: auto;
+  padding: 16px 18px 18px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.dialog-wide { width: min(620px, calc(100vw - 32px)); }
+.dialog h2 { margin: 0 0 10px; font-size: 15px; }
+.dialog p { margin: 0 0 12px; color: var(--text-soft); }
+.dialog label { display: block; margin-bottom: 6px; font-size: 13px; }
+.dialog input[type="text"], .dialog input[type="number"] {
+  width: 100%;
+  padding: 7px 9px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.stat-grid dt { color: var(--text-soft); }
+.stat-grid dd { margin: 0; text-align: right; font-weight: 600; }
+
+.shortcut-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.shortcut-table th {
+  text-align: left;
+  padding: 10px 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--border);
+}
+.shortcut-table td { padding: 4px 0; vertical-align: top; }
+.shortcut-table td:last-child { text-align: right; white-space: nowrap; }
+kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font: 12px/1.5 var(--editor-font);
+}
+
+/* ============================================================ toast ====== */
+.toast {
+  position: fixed;
+  z-index: 70;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 9px 14px;
+  background: var(--text);
+  color: var(--bg-raised);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  text-align: center;
+}
+.toast[hidden] { display: none; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================ narrow ===== */
+@media (max-width: 760px) {
+  /* A dropdown anchored to its title would run off the right edge here, and
+     the page never scrolls sideways, so it would simply be lost. */
+  .menu {
+    position: fixed;
+    top: 42px;
+    left: 8px;
+    right: 8px;
+    min-width: 0;
+  }
+  .sidebar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: min(84vw, 300px);
+    flex-basis: auto;
+    box-shadow: var(--shadow);
+  }
+  .doc-title { max-width: 100%; margin-left: 0; order: 9; flex: 1 1 100%; }
+  .statusbar { gap: 10px; font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ============================================================ print ====== */
+#print-area { display: none; }
+
+@media print {
+  body { overflow: visible; background: #fff; }
+  .app, .backdrop, .dialog, .toast { display: none !important; }
+  #print-area {
+    display: block;
+    white-space: pre-wrap;
+    font: 12pt/1.5 var(--editor-font);
+    color: #000;
+  }
+  #print-area h1 { font: bold 16pt/1.3 var(--ui-font); margin: 0 0 12pt; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app" data-sidebar="on" data-font="mono">
+  <header class="titlebar">
+    <button class="icon-button" id="toggle-sidebar" type="button" aria-expanded="true"
+      aria-controls="sidebar" aria-label="Show or hide the note list">☰</button>
+    <div class="menubar" id="menubar" role="menubar" aria-label="Application"></div>
+    <h1 class="doc-title" id="note-title" title="Double-click to rename">Untitled</h1>
+  </header>
+
+  <div class="workspace">
+    <aside class="sidebar" id="sidebar" aria-label="Notes">
+      <div class="sidebar-tools">
+        <input class="search-input" id="note-search" type="search" placeholder="Search notes" aria-label="Search notes" autocomplete="off">
+        <button class="button button-primary" id="new-note" type="button" title="New note">New</button>
+      </div>
+      <div class="sidebar-meta">
+        <span id="note-count">0 notes</span>
+        <span id="sort-label"></span>
+      </div>
+      <ul class="note-list" id="note-list" role="listbox" aria-label="Saved notes"></ul>
+      <p class="empty-note" id="note-empty" hidden>No notes match that search.</p>
+    </aside>
+
+    <main class="editor-pane">
+      <div class="findbar" id="find-bar" role="search" aria-label="Find and replace" hidden>
+        <div class="findbar-row">
+          <input id="find-input" type="text" placeholder="Find" aria-label="Find" autocomplete="off">
+          <button class="button" id="find-prev" type="button" title="Find previous (Shift+F3)">Previous</button>
+          <button class="button" id="find-next" type="button" title="Find next (F3)">Next</button>
+          <span class="find-status" id="find-status" role="status" aria-live="polite"></span>
+          <button class="icon-button" id="find-close" type="button" aria-label="Close find bar">✕</button>
+        </div>
+        <div class="findbar-row" id="replace-row" hidden>
+          <input id="replace-input" type="text" placeholder="Replace with" aria-label="Replace with" autocomplete="off">
+          <button class="button" id="replace-one" type="button">Replace</button>
+          <button class="button" id="replace-all" type="button">Replace all</button>
+        </div>
+        <div class="find-toggles">
+          <label class="find-toggle"><input id="find-match-case" type="checkbox"> Match case</label>
+          <label class="find-toggle"><input id="find-whole-word" type="checkbox"> Whole word</label>
+          <label class="find-toggle"><input id="find-regex" type="checkbox"> Regular expression</label>
+        </div>
+      </div>
+      <textarea class="editor" id="editor" wrap="soft" spellcheck="false" autocomplete="off"
+        aria-label="Note text" placeholder="Start typing…"></textarea>
+    </main>
+  </div>
+
+  <footer class="statusbar" id="statusbar">
+    <span id="status-position">Ln 1, Col 1</span>
+    <span id="status-selection"></span>
+    <span class="spacer" id="status-counts">0 words, 0 characters</span>
+    <span id="status-save">Ready</span>
+  </footer>
+</div>
+
+<div class="backdrop" id="backdrop" hidden></div>
+
+<div class="dialog" id="prompt-dialog" role="dialog" aria-modal="true" aria-labelledby="prompt-title" hidden>
+  <h2 id="prompt-title">Rename note</h2>
+  <label for="prompt-input" id="prompt-label">Note title</label>
+  <input id="prompt-input" type="text" autocomplete="off">
+  <div class="dialog-actions">
+    <button class="button" id="prompt-cancel" type="button">Cancel</button>
+    <button class="button button-primary" id="prompt-ok" type="button">Rename</button>
+  </div>
+</div>
+
+<div class="dialog" id="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title" hidden>
+  <h2 id="confirm-title">Are you sure?</h2>
+  <p id="confirm-message"></p>
+  <div class="dialog-actions">
+    <button class="button" id="confirm-cancel" type="button">Cancel</button>
+    <button class="button button-primary button-danger" id="confirm-ok" type="button">Delete</button>
+  </div>
+</div>
+
+<div class="dialog" id="goto-dialog" role="dialog" aria-modal="true" aria-labelledby="goto-title" hidden>
+  <h2 id="goto-title">Go to line</h2>
+  <label for="goto-input">Line number</label>
+  <input id="goto-input" type="text" inputmode="numeric" autocomplete="off">
+  <div class="dialog-actions">
+    <button class="button" id="goto-cancel" type="button">Cancel</button>
+    <button class="button button-primary" id="goto-ok" type="button">Go</button>
+  </div>
+</div>
+
+<div class="dialog" id="stats-dialog" role="dialog" aria-modal="true" aria-labelledby="stats-title" hidden>
+  <h2 id="stats-title">Document statistics</h2>
+  <dl class="stat-grid" id="stats-body"></dl>
+  <div class="dialog-actions">
+    <button class="button button-primary" id="stats-close" type="button">Close</button>
+  </div>
+</div>
+
+<div class="dialog dialog-wide" id="shortcuts-dialog" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" hidden>
+  <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+  <table class="shortcut-table"><tbody id="shortcuts-body"></tbody></table>
+  <div class="dialog-actions">
+    <button class="button button-primary" id="shortcuts-close" type="button">Close</button>
+  </div>
+</div>
+
+<div class="dialog" id="about-dialog" role="dialog" aria-modal="true" aria-labelledby="about-title" hidden>
+  <h2 id="about-title">About Notepad</h2>
+  <p id="about-body"></p>
+  <p>Your notes are stored only in this browser. Nothing is uploaded anywhere, and the app
+     works with no network connection at all.</p>
+  <div class="dialog-actions">
+    <button class="button button-primary" id="about-close" type="button">Close</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<input id="file-input" type="file" accept=".txt,.md,.markdown,.text,.log,.csv,text/plain" class="visually-hidden" tabindex="-1" aria-hidden="true">
+<input id="import-input" type="file" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true">
+
+<div id="print-area"><h1 id="print-title"></h1><div id="print-body"></div></div>
+
+<script id="notepad-core">
+/*
+ * notepad-core — pure logic. No DOM, no globals beyond the namespace it exports.
+ * Everything here is directly unit-testable; see test/core/.
+ */
+(function (root) {
+  'use strict';
+
+  /* ---------------------------------------------------------------- text --- */
+
+  var FALLBACK_TITLE = 'Untitled';
+  var MAX_TITLE = 60;
+  var MAX_FILENAME = 64;
+  var WORDS_PER_MINUTE = 200;
+
+  /** Normalise line endings so every offset we compute matches the textarea. */
+  function normalizeNewlines(value) {
+    return String(value == null ? '' : value).replace(/\r\n?/g, '\n');
+  }
+
+  function clamp(value, min, max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+  }
+
+  function countStats(value) {
+    var body = normalizeNewlines(value);
+    var words = body.match(/\S+/g);
+    var wordCount = words ? words.length : 0;
+    var trimmed = body.trim();
+    var sentences = trimmed
+      ? trimmed.split(/[.!?]+(?:\s+|$)/).filter(function (part) {
+          return part.trim().length > 0;
+        }).length
+      : 0;
+    var paragraphs = body.split(/\n\s*\n/).filter(function (block) {
+      return block.trim().length > 0;
+    }).length;
+    return {
+      chars: body.length,
+      charsNoSpaces: body.replace(/\s/g, '').length,
+      words: wordCount,
+      lines: body.length === 0 ? 1 : body.split('\n').length,
+      paragraphs: paragraphs,
+      sentences: sentences,
+      readingMinutes: wordCount === 0 ? 0 : Math.ceil(wordCount / WORDS_PER_MINUTE),
+    };
+  }
+
+  /** 1-based caret position, the way a status bar reports it. */
+  function lineColumnAt(value, index) {
+    var body = normalizeNewlines(value);
+    var at = clamp(Number(index) || 0, 0, body.length);
+    var before = body.slice(0, at);
+    var lastBreak = before.lastIndexOf('\n');
+    return {
+      line: before.split('\n').length,
+      column: at - lastBreak,
+    };
+  }
+
+  /** Span of a 1-based line, excluding its terminating newline. */
+  function lineBounds(value, line) {
+    var body = normalizeNewlines(value);
+    var lines = body.split('\n');
+    var index = clamp(Math.floor(Number(line) || 1), 1, lines.length) - 1;
+    var start = 0;
+    for (var i = 0; i < index; i += 1) start += lines[i].length + 1;
+    return { start: start, end: start + lines[index].length };
+  }
+
+  /** Absolute offset for a 1-based line/column pair, clamped to the line. */
+  function offsetAt(value, line, column) {
+    var bounds = lineBounds(value, line);
+    var col = Math.max(1, Math.floor(Number(column) || 1));
+    return Math.min(bounds.start + col - 1, bounds.end);
+  }
+
+  var LETTER_RUN = /[A-Za-zÀ-ÖØ-öø-ɏ]+/g;
+
+  function titleCase(body) {
+    return body.replace(LETTER_RUN, function (part, offset, whole) {
+      // Keep a one-letter contraction tail lower ("don't", not "Don'T") while
+      // still capitalising name particles ("o'neill" -> "O'Neill").
+      if (whole.charAt(offset - 1) === "'" && part.length < 2) return part.toLowerCase();
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    });
+  }
+
+  function transformCase(value, mode) {
+    var body = String(value == null ? '' : value);
+    switch (mode) {
+      case 'upper':
+        return body.toUpperCase();
+      case 'lower':
+        return body.toLowerCase();
+      case 'title':
+        return titleCase(body);
+      case 'sentence':
+        return body.toLowerCase().replace(/(^|[.!?]\s+)([a-zà-ɏ])/g, function (_, lead, ch) {
+          return lead + ch.toUpperCase();
+        });
+      case 'invert':
+        return body.replace(/[A-Za-zÀ-ɏ]/g, function (ch) {
+          return ch === ch.toUpperCase() ? ch.toLowerCase() : ch.toUpperCase();
+        });
+      default:
+        return body;
+    }
+  }
+
+  /** Split into lines, remembering whether the text ended with a newline. */
+  function splitLines(value) {
+    var body = normalizeNewlines(value);
+    var trailing = body.length > 0 && body.charAt(body.length - 1) === '\n';
+    var lines = body.split('\n');
+    if (trailing) lines.pop();
+    return { lines: lines, trailing: trailing };
+  }
+
+  function joinLines(parts) {
+    return parts.lines.join('\n') + (parts.trailing ? '\n' : '');
+  }
+
+  function sortLines(value, options) {
+    var opts = options || {};
+    var parts = splitLines(value);
+    var sorted = parts.lines.slice().sort(function (a, b) {
+      var left = opts.caseSensitive ? a : a.toLowerCase();
+      var right = opts.caseSensitive ? b : b.toLowerCase();
+      if (left < right) return -1;
+      if (left > right) return 1;
+      return 0;
+    });
+    if (opts.descending) sorted.reverse();
+    return joinLines({ lines: sorted, trailing: parts.trailing });
+  }
+
+  function dedupeLines(value) {
+    var parts = splitLines(value);
+    var seen = Object.create(null);
+    var kept = [];
+    parts.lines.forEach(function (line) {
+      var key = '#' + line;
+      if (seen[key]) return;
+      seen[key] = true;
+      kept.push(line);
+    });
+    return joinLines({ lines: kept, trailing: parts.trailing });
+  }
+
+  function trimTrailingWhitespace(value) {
+    var parts = splitLines(value);
+    return joinLines({
+      lines: parts.lines.map(function (line) {
+        return line.replace(/[ \t]+$/, '');
+      }),
+      trailing: parts.trailing,
+    });
+  }
+
+  function reverseLines(value) {
+    var parts = splitLines(value);
+    return joinLines({ lines: parts.lines.slice().reverse(), trailing: parts.trailing });
+  }
+
+  /**
+   * Tab / Shift+Tab behaviour.
+   * A selection that spans lines indents or outdents each line it touches;
+   * anything narrower simply inserts (or removes) one tab stop at the caret.
+   */
+  function indentBlock(value, selectionStart, selectionEnd, options) {
+    var body = normalizeNewlines(value);
+    var opts = options || {};
+    var tab = opts.tab == null ? '\t' : opts.tab;
+    var start = clamp(Number(selectionStart) || 0, 0, body.length);
+    var end = clamp(Number(selectionEnd) || 0, 0, body.length);
+    if (end < start) {
+      var swap = start;
+      start = end;
+      end = swap;
+    }
+    var multiline = body.slice(start, end).indexOf('\n') !== -1;
+
+    if (!multiline && !opts.outdent) {
+      return {
+        text: body.slice(0, start) + tab + body.slice(end),
+        selectionStart: start + tab.length,
+        selectionEnd: start + tab.length,
+      };
+    }
+
+    var firstLine = lineColumnAt(body, start).line;
+    var lastLine = lineColumnAt(body, end).line;
+    var parts = splitLines(body);
+    var changedFirst = 0;
+    for (var i = firstLine - 1; i <= lastLine - 1 && i < parts.lines.length; i += 1) {
+      var line = parts.lines[i];
+      if (opts.outdent) {
+        var removed = /^\t/.test(line)
+          ? 1
+          : Math.min((/^[ ]*/.exec(line) || [''])[0].length, Math.max(tab.length, 1));
+        parts.lines[i] = line.slice(removed);
+        if (i === firstLine - 1) changedFirst = -removed;
+      } else {
+        parts.lines[i] = tab + line;
+        if (i === firstLine - 1) changedFirst = tab.length;
+      }
+    }
+    var next = joinLines(parts);
+    var firstBounds = lineBounds(next, firstLine);
+    var lastBounds = lineBounds(next, lastLine);
+    if (!multiline) {
+      // Outdent with no selection: keep the caret where the text left it.
+      var caret = clamp(start + changedFirst, firstBounds.start, lastBounds.end);
+      return { text: next, selectionStart: caret, selectionEnd: caret };
+    }
+    return { text: next, selectionStart: firstBounds.start, selectionEnd: lastBounds.end };
+  }
+
+  /** The string Enter should insert to keep the current indentation. */
+  function autoIndent(value, index) {
+    var body = normalizeNewlines(value);
+    var at = clamp(Number(index) || 0, 0, body.length);
+    var lineStart = body.lastIndexOf('\n', at - 1) + 1;
+    var prefix = body.slice(lineStart, at);
+    var indent = (/^[ \t]*/.exec(prefix) || [''])[0];
+    return '\n' + indent;
+  }
+
+  /** Notepad's F5 stamp: "3:04 PM 9/10/2026". */
+  function formatDateTime(date) {
+    var d = date instanceof Date ? date : new Date();
+    var hours24 = d.getHours();
+    var hours = hours24 % 12 === 0 ? 12 : hours24 % 12;
+    var minutes = String(d.getMinutes()).padStart(2, '0');
+    var meridiem = hours24 < 12 ? 'AM' : 'PM';
+    return (
+      hours + ':' + minutes + ' ' + meridiem + ' ' +
+      (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear()
+    );
+  }
+
+  /** Short, human "when" for note lists. Falls back to a plain date. */
+  function relativeTime(then, now) {
+    var at = Number(then) || 0;
+    var reference = now == null ? Date.now() : Number(now);
+    var seconds = Math.round((reference - at) / 1000);
+    if (seconds < 45) return 'just now';
+    var minutes = Math.round(seconds / 60);
+    if (minutes < 60) return minutes + ' min ago';
+    var hours = Math.round(minutes / 60);
+    if (hours < 24) return hours + ' hr ago';
+    var days = Math.round(hours / 24);
+    if (days === 1) return 'yesterday';
+    if (days < 7) return days + ' days ago';
+    var date = new Date(at);
+    return date.getMonth() + 1 + '/' + date.getDate() + '/' + date.getFullYear();
+  }
+
+  function suggestFilename(title, extension) {
+    var ext = extension || '.txt';
+    var base = String(title == null ? '' : title)
+      .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (base.toLowerCase().endsWith(ext.toLowerCase())) {
+      base = base.slice(0, -ext.length).trim();
+    }
+    if (!base) base = 'untitled';
+    var room = MAX_FILENAME - ext.length;
+    if (base.length > room) base = base.slice(0, room).trim();
+    return base + ext;
+  }
+
+  /** First meaningful line of a note, used when the user never named it. */
+  function deriveTitle(body, fallback) {
+    var lines = normalizeNewlines(body).split('\n');
+    for (var i = 0; i < lines.length; i += 1) {
+      var line = lines[i].replace(/^\s*#{1,6}\s+/, '').trim();
+      if (line) return line.length > MAX_TITLE ? line.slice(0, MAX_TITLE).trim() : line;
+    }
+    return fallback || FALLBACK_TITLE;
+  }
+
+  var text = {
+    FALLBACK_TITLE: FALLBACK_TITLE,
+    WORDS_PER_MINUTE: WORDS_PER_MINUTE,
+    normalizeNewlines: normalizeNewlines,
+    clamp: clamp,
+    countStats: countStats,
+    lineColumnAt: lineColumnAt,
+    lineBounds: lineBounds,
+    offsetAt: offsetAt,
+    transformCase: transformCase,
+    sortLines: sortLines,
+    dedupeLines: dedupeLines,
+    trimTrailingWhitespace: trimTrailingWhitespace,
+    reverseLines: reverseLines,
+    indentBlock: indentBlock,
+    autoIndent: autoIndent,
+    formatDateTime: formatDateTime,
+    relativeTime: relativeTime,
+    suggestFilename: suggestFilename,
+    deriveTitle: deriveTitle,
+  };
+
+  /* ---------------------------------------------------------------- find --- */
+
+  var DEFAULT_MATCH_LIMIT = 50000;
+
+  function escapeLiteral(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /**
+   * Turn find-bar options into a RegExp, reporting problems as data.
+   * @returns {{ok: true, regex: RegExp}|{ok: false, error: string}}
+   */
+  function compile(options) {
+    var opts = options || {};
+    var query = opts.query == null ? '' : String(opts.query);
+    if (!query) return { ok: false, error: 'Enter text to find.' };
+    var source = opts.useRegex ? query : escapeLiteral(query);
+    if (opts.wholeWord) source = '\\b(?:' + source + ')\\b';
+    try {
+      return { ok: true, regex: new RegExp(source, opts.matchCase ? 'g' : 'gi') };
+    } catch (err) {
+      return { ok: false, error: 'Invalid regular expression: ' + err.message };
+    }
+  }
+
+  /** Walk every match, guarding against zero-width patterns looping forever. */
+  function scan(value, options, visit) {
+    var compiled = compile(options);
+    if (!compiled.ok) return 0;
+    var body = normalizeNewlines(value);
+    var regex = compiled.regex;
+    var limit = options && options.limit != null ? options.limit : DEFAULT_MATCH_LIMIT;
+    var count = 0;
+    var match;
+    regex.lastIndex = 0;
+    while (count < limit && (match = regex.exec(body)) !== null) {
+      if (visit(match, count) === false) return count + 1;
+      count += 1;
+      if (match.index === regex.lastIndex) regex.lastIndex += 1;
+      if (regex.lastIndex > body.length) break;
+    }
+    return count;
+  }
+
+  function toMatch(raw) {
+    return {
+      start: raw.index,
+      end: raw.index + raw[0].length,
+      text: raw[0],
+      groups: Array.prototype.slice.call(raw),
+    };
+  }
+
+  function findAll(value, options) {
+    var found = [];
+    scan(value, options, function (raw) {
+      found.push(toMatch(raw));
+    });
+    for (var i = 0; i < found.length; i += 1) {
+      found[i].index = i;
+      found[i].total = found.length;
+    }
+    return found;
+  }
+
+  function countMatches(value, options) {
+    return scan(value, options, function () {});
+  }
+
+  function findNext(value, options, from, extra) {
+    var matches = findAll(value, options);
+    if (!matches.length) return null;
+    var at = Math.max(0, Number(from) || 0);
+    for (var i = 0; i < matches.length; i += 1) {
+      if (matches[i].start >= at) return matches[i];
+    }
+    if (extra && extra.wrap === false) return null;
+    return matches[0];
+  }
+
+  function findPrev(value, options, from, extra) {
+    var matches = findAll(value, options);
+    if (!matches.length) return null;
+    var at = Math.max(0, Number(from) || 0);
+    for (var i = matches.length - 1; i >= 0; i -= 1) {
+      if (matches[i].end <= at) return matches[i];
+    }
+    if (extra && extra.wrap === false) return null;
+    return matches[matches.length - 1];
+  }
+
+  /** Apply `$&`, `$1`..`$99` and `$$` — but only when the user asked for regex. */
+  function expandReplacement(match, replacement, useRegex) {
+    var value = replacement == null ? '' : String(replacement);
+    if (!useRegex) return value;
+    return value.replace(/\$(\$|&|\d{1,2})/g, function (whole, token) {
+      if (token === '$') return '$';
+      if (token === '&') return match.text;
+      var group = match.groups[Number(token)];
+      return group == null ? '' : group;
+    });
+  }
+
+  function replaceMatch(value, match, replacement, options) {
+    var body = normalizeNewlines(value);
+    if (!match) return { text: body, selectionStart: 0, selectionEnd: 0, count: 0 };
+    var inserted = expandReplacement(match, replacement, options && options.useRegex);
+    return {
+      text: body.slice(0, match.start) + inserted + body.slice(match.end),
+      selectionStart: match.start,
+      selectionEnd: match.start + inserted.length,
+      count: 1,
+    };
+  }
+
+  /**
+   * Replace every match in one pass. Replacement text is never rescanned, and
+   * an optional {start, end} window limits the work to the current selection.
+   */
+  function replaceAll(value, options, replacement, range) {
+    var body = normalizeNewlines(value);
+    var from = range && range.start != null ? range.start : 0;
+    var to = range && range.end != null ? range.end : body.length;
+    var out = '';
+    var cursor = 0;
+    var count = 0;
+    scan(body, options, function (raw) {
+      var match = toMatch(raw);
+      if (match.start < from || match.end > to) return;
+      out += body.slice(cursor, match.start) + expandReplacement(match, replacement, options && options.useRegex);
+      cursor = match.end;
+      count += 1;
+    });
+    if (!count) return { text: body, count: 0 };
+    return { text: out + body.slice(cursor), count: count };
+  }
+
+  var find = {
+    escapeLiteral: escapeLiteral,
+    compile: compile,
+    findAll: findAll,
+    countMatches: countMatches,
+    findNext: findNext,
+    findPrev: findPrev,
+    expandReplacement: expandReplacement,
+    replaceMatch: replaceMatch,
+    replaceAll: replaceAll,
+  };
+
+  /* ------------------------------------------------------------- history --- */
+
+  var COALESCE_MS = 1000;
+  var HISTORY_LIMIT = 200;
+  var HISTORY_CHAR_BUDGET = 4000000;
+
+  function snapshot(state) {
+    return {
+      value: state && state.value != null ? String(state.value) : '',
+      selectionStart: state && state.selectionStart != null ? state.selectionStart : 0,
+      selectionEnd: state && state.selectionEnd != null ? state.selectionEnd : 0,
+    };
+  }
+
+  /**
+   * An undo/redo timeline of whole-document snapshots.
+   *
+   * The textarea's built-in undo cannot see edits we make programmatically
+   * (replace all, sort lines, ...), so the app owns the timeline instead.
+   * Consecutive keystrokes coalesce into one step the way a real editor does.
+   */
+  function createHistory(initial, options) {
+    var opts = options || {};
+    var limit = opts.limit || HISTORY_LIMIT;
+    var budget = opts.maxChars || HISTORY_CHAR_BUDGET;
+    var coalesceMs = opts.coalesceMs == null ? COALESCE_MS : opts.coalesceMs;
+    var entries = [];
+    var index = 0;
+    var forceBreak = false;
+
+    /** Drop the oldest steps until the retained text fits the budget. */
+    function trim() {
+      if (entries.length > limit) entries.splice(0, entries.length - limit);
+      var total = 0;
+      for (var i = 0; i < entries.length; i += 1) total += entries[i].value.length;
+      while (entries.length > 1 && total > budget) {
+        total -= entries[0].value.length;
+        entries.shift();
+      }
+      index = entries.length - 1;
+    }
+
+    function seed(state) {
+      var entry = snapshot(state);
+      entry.at = 0;
+      entry.kind = 'seed';
+      entry.coalescable = false;
+      entries = [entry];
+      index = 0;
+      forceBreak = false;
+    }
+
+    /** Is `next` a plain continuation of typing at the same caret as `prev`? */
+    function isContinuation(prev, next) {
+      var delta = next.value.length - prev.value.length;
+      if (Math.abs(delta) !== 1) return false;
+      if (next.selectionStart !== next.selectionEnd) return false;
+      if (next.selectionStart !== prev.selectionStart + delta) return false;
+      if (delta > 0) {
+        var inserted = next.value.slice(Math.min(prev.selectionStart, next.selectionStart), next.selectionStart);
+        if (inserted.indexOf('\n') !== -1) return false;
+      }
+      return true;
+    }
+
+    seed(initial);
+
+    return {
+      current: function () {
+        return snapshot(entries[index]);
+      },
+      size: function () {
+        return entries.length;
+      },
+      canUndo: function () {
+        return index > 0;
+      },
+      canRedo: function () {
+        return index < entries.length - 1;
+      },
+      /** Force the next push to begin a new undo step. */
+      mark: function () {
+        forceBreak = true;
+      },
+      reset: function (state) {
+        seed(state);
+      },
+      push: function (state, meta) {
+        var info = meta || {};
+        var next = snapshot(state);
+        var head = entries[index];
+        if (next.value === head.value) {
+          // Caret-only movement is not an undo step, but remember where we are.
+          head.selectionStart = next.selectionStart;
+          head.selectionEnd = next.selectionEnd;
+          return false;
+        }
+        next.at = info.at == null ? Date.now() : info.at;
+        next.kind = info.kind || 'edit';
+        next.coalescable = next.kind === 'type' && next.value.slice(-1) !== '\n';
+
+        var mergeable =
+          !forceBreak &&
+          index === entries.length - 1 &&
+          index > 0 &&
+          head.coalescable &&
+          head.kind === next.kind &&
+          next.kind === 'type' &&
+          next.at - head.at <= coalesceMs &&
+          isContinuation(head, next);
+
+        forceBreak = false;
+        if (mergeable) {
+          next.coalescable = next.coalescable && head.coalescable;
+          entries[index] = next;
+          return true;
+        }
+        entries.length = index + 1;
+        entries.push(next);
+        trim();
+        return true;
+      },
+      undo: function () {
+        if (index <= 0) return null;
+        index -= 1;
+        forceBreak = true;
+        return snapshot(entries[index]);
+      },
+      redo: function () {
+        if (index >= entries.length - 1) return null;
+        index += 1;
+        forceBreak = true;
+        return snapshot(entries[index]);
+      },
+    };
+  }
+
+  var history = { create: createHistory, snapshot: snapshot };
+
+  /* ----------------------------------------------------------------- notes --- */
+
+  var SCHEMA = 1;
+  var SNIPPET_LENGTH = 120;
+  var NOTE_FIELDS = ['title', 'body', 'pinned'];
+  var CONTENT_FIELDS = ['title', 'body'];
+
+  var THEMES = ['system', 'light', 'dark'];
+  var FONTS = ['mono', 'sans', 'serif'];
+  var SORT_MODES = ['updated', 'created', 'title'];
+
+  var DEFAULT_SETTINGS = {
+    theme: 'system',
+    font: 'mono',
+    fontSize: 15,
+    wordWrap: true,
+    sortMode: 'updated',
+    sidebar: true,
+    statusBar: true,
+    tabSize: 4,
+    softTabs: true,
+    autoIndent: true,
+    spellcheck: false,
+  };
+
+  function oneOf(list, fallback) {
+    return function (value) {
+      return list.indexOf(value) === -1 ? fallback : value;
+    };
+  }
+
+  function bool(fallback) {
+    return function (value) {
+      return typeof value === 'boolean' ? value : fallback;
+    };
+  }
+
+  function int(min, max, fallback) {
+    return function (value) {
+      var n = Math.round(Number(value));
+      if (!isFinite(n)) return fallback;
+      return clamp(n, min, max);
+    };
+  }
+
+  var SETTING_VALIDATORS = {
+    theme: oneOf(THEMES, 'system'),
+    font: oneOf(FONTS, 'mono'),
+    fontSize: int(10, 72, DEFAULT_SETTINGS.fontSize),
+    wordWrap: bool(true),
+    sortMode: oneOf(SORT_MODES, 'updated'),
+    sidebar: bool(true),
+    statusBar: bool(true),
+    tabSize: int(1, 8, DEFAULT_SETTINGS.tabSize),
+    softTabs: bool(true),
+    autoIndent: bool(true),
+    spellcheck: bool(false),
+  };
+
+  function defaultSettings() {
+    var out = {};
+    Object.keys(DEFAULT_SETTINGS).forEach(function (key) {
+      out[key] = DEFAULT_SETTINGS[key];
+    });
+    return out;
+  }
+
+  /** Merge a patch of settings, dropping unknown keys and clamping the rest. */
+  function sanitizeSettings(patch, base) {
+    var out = base || defaultSettings();
+    var source = patch && typeof patch === 'object' ? patch : {};
+    Object.keys(SETTING_VALIDATORS).forEach(function (key) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        out[key] = SETTING_VALIDATORS[key](source[key]);
+      }
+    });
+    return out;
+  }
+
+  function makeId() {
+    return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function makeNote(options) {
+    var opts = options || {};
+    var now = opts.now == null ? Date.now() : opts.now;
+    return {
+      id: opts.id || makeId(),
+      title: opts.title == null ? '' : String(opts.title).trim(),
+      body: opts.body == null ? '' : normalizeNewlines(opts.body),
+      createdAt: now,
+      updatedAt: now,
+      pinned: opts.pinned === true,
+    };
+  }
+
+  function withNotes(state, list, activeId) {
+    return {
+      schema: SCHEMA,
+      notes: list,
+      activeId: activeId == null ? state.activeId : activeId,
+      settings: state.settings,
+    };
+  }
+
+  function createState(options) {
+    var note = makeNote(options);
+    return {
+      schema: SCHEMA,
+      notes: [note],
+      activeId: note.id,
+      settings: defaultSettings(),
+    };
+  }
+
+  function indexOfNote(state, id) {
+    for (var i = 0; i < state.notes.length; i += 1) {
+      if (state.notes[i].id === id) return i;
+    }
+    return -1;
+  }
+
+  function getNote(state, id) {
+    var at = indexOfNote(state, id);
+    return at === -1 ? null : state.notes[at];
+  }
+
+  function createNote(state, options) {
+    var opts = options || {};
+    if (opts.id && indexOfNote(state, opts.id) !== -1) {
+      throw new Error('A note with the id "' + opts.id + '" already exists.');
+    }
+    var note = makeNote(opts);
+    return withNotes(state, state.notes.concat([note]), note.id);
+  }
+
+  function updateNote(state, id, patch, now) {
+    var at = indexOfNote(state, id);
+    if (at === -1) return state;
+    var previous = state.notes[at];
+    var next = {};
+    Object.keys(previous).forEach(function (key) {
+      next[key] = previous[key];
+    });
+    NOTE_FIELDS.forEach(function (field) {
+      if (!Object.prototype.hasOwnProperty.call(patch || {}, field)) return;
+      if (field === 'pinned') next.pinned = patch.pinned === true;
+      else if (field === 'title') next.title = String(patch.title == null ? '' : patch.title).trim();
+      else next.body = normalizeNewlines(patch.body);
+    });
+    var contentChanged = CONTENT_FIELDS.some(function (field) {
+      return next[field] !== previous[field];
+    });
+    if (contentChanged) next.updatedAt = now == null ? Date.now() : now;
+    var list = state.notes.slice();
+    list[at] = next;
+    return withNotes(state, list);
+  }
+
+  /**
+   * Delete a note. The selection slides to the next note (or the previous one
+   * if there is no next); deleting the last note leaves a fresh empty buffer
+   * behind, so the editor is never without a document.
+   */
+  function removeNote(state, id, options) {
+    var opts = options || {};
+    var at = indexOfNote(state, id);
+    if (at === -1) return state;
+    var list = state.notes.slice();
+    list.splice(at, 1);
+    if (!list.length) {
+      var replacement = makeNote({ id: opts.id, now: opts.now });
+      return withNotes(state, [replacement], replacement.id);
+    }
+    var activeId = state.activeId;
+    if (state.activeId === id) {
+      activeId = list[Math.min(at, list.length - 1)].id;
+    }
+    return withNotes(state, list, activeId);
+  }
+
+  function duplicateNote(state, id, options) {
+    var opts = options || {};
+    var at = indexOfNote(state, id);
+    if (at === -1) return state;
+    var source = state.notes[at];
+    var copy = makeNote({
+      id: opts.id,
+      now: opts.now,
+      title: titleOf(source) + ' (copy)',
+      body: source.body,
+    });
+    var list = state.notes.slice();
+    list.splice(at + 1, 0, copy);
+    return withNotes(state, list, copy.id);
+  }
+
+  function renameNote(state, id, title, now) {
+    return updateNote(state, id, { title: title }, now);
+  }
+
+  function togglePin(state, id) {
+    var note = getNote(state, id);
+    if (!note) return state;
+    return updateNote(state, id, { pinned: !note.pinned });
+  }
+
+  function setActive(state, id) {
+    if (indexOfNote(state, id) === -1) return state;
+    return withNotes(state, state.notes, id);
+  }
+
+  function activeNote(state) {
+    return getNote(state, state.activeId) || state.notes[0] || null;
+  }
+
+  function titleOf(note) {
+    if (!note) return FALLBACK_TITLE;
+    var explicit = String(note.title || '').trim();
+    if (explicit) return explicit;
+    return deriveTitle(note.body, FALLBACK_TITLE);
+  }
+
+  /**
+   * One-line preview for the sidebar: the body minus whatever became the title.
+   * Only a bounded prefix of the body is examined — this runs once per note
+   * every time the list is drawn, so it must not depend on note length.
+   */
+  function snippet(note, options) {
+    if (!note) return '';
+    var limit = (options && options.length) || SNIPPET_LENGTH;
+    var body = String(note.body || '').slice(0, (limit + 1) * 8);
+    if (!String(note.title || '').trim()) {
+      var lines = normalizeNewlines(body).split('\n');
+      var cut = 0;
+      while (cut < lines.length && !lines[cut].trim()) cut += 1;
+      body = lines.slice(cut + 1).join('\n');
+    }
+    var flat = body.replace(/\s+/g, ' ').trim();
+    return flat.length > limit ? flat.slice(0, limit).trim() : flat;
+  }
+
+  function compareNotes(mode) {
+    if (mode === 'title') {
+      return function (a, b) {
+        var left = titleOf(a).toLowerCase();
+        var right = titleOf(b).toLowerCase();
+        if (left < right) return -1;
+        if (left > right) return 1;
+        return 0;
+      };
+    }
+    var field = mode === 'created' ? 'createdAt' : 'updatedAt';
+    return function (a, b) {
+      return (b[field] || 0) - (a[field] || 0);
+    };
+  }
+
+  /** Pinned notes float to the top; the rest follow the chosen order. */
+  function sortNotes(list, mode) {
+    var compare = compareNotes(SORT_MODES.indexOf(mode) === -1 ? 'updated' : mode);
+    var pinned = list.filter(function (note) {
+      return note.pinned;
+    });
+    var rest = list.filter(function (note) {
+      return !note.pinned;
+    });
+    return pinned.sort(compare).concat(rest.sort(compare));
+  }
+
+  /** Every whitespace-separated term must appear in the title or the body. */
+  function filterNotes(list, query) {
+    var terms = String(query == null ? '' : query).toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return list.slice();
+    return list.filter(function (note) {
+      var haystack = (titleOf(note) + '\n' + (note.body || '')).toLowerCase();
+      return terms.every(function (term) {
+        return haystack.indexOf(term) !== -1;
+      });
+    });
+  }
+
+  function visibleNotes(state, options) {
+    var opts = options || {};
+    var query = opts.query == null ? state.settings.query || '' : opts.query;
+    var mode = opts.sortMode == null ? state.settings.sortMode : opts.sortMode;
+    return sortNotes(filterNotes(state.notes, query), mode);
+  }
+
+  function updateSettings(state, patch) {
+    var next = sanitizeSettings(patch, sanitizeSettings(state.settings, defaultSettings()));
+    return {
+      schema: SCHEMA,
+      notes: state.notes,
+      activeId: state.activeId,
+      settings: next,
+    };
+  }
+
+  function serialize(state) {
+    return JSON.stringify({
+      schema: SCHEMA,
+      notes: state.notes,
+      activeId: state.activeId,
+      settings: state.settings,
+    });
+  }
+
+  /** Accept anything that looks like a note; report whether we had to fix it. */
+  function readNotes(raw, report) {
+    var list = [];
+    (Array.isArray(raw) ? raw : []).forEach(function (entry) {
+      if (!entry || typeof entry !== 'object' || typeof entry.id !== 'string' || !entry.id) {
+        report();
+        return;
+      }
+      if (typeof entry.body !== 'string' && typeof entry.title !== 'string') {
+        report();
+        return;
+      }
+      list.push(entry);
+    });
+    return list;
+  }
+
+  function normalizeNote(raw, now, report) {
+    var note = makeNote({
+      id: raw.id,
+      now: now,
+      title: typeof raw.title === 'string' ? raw.title : '',
+      body: typeof raw.body === 'string' ? raw.body : '',
+      pinned: raw.pinned === true,
+    });
+    var created = Number(raw.createdAt);
+    var updated = Number(raw.updatedAt);
+    if (isFinite(created) && created > 0) note.createdAt = created;
+    else report();
+    if (isFinite(updated) && updated > 0) note.updatedAt = updated;
+    else note.updatedAt = note.createdAt;
+    return note;
+  }
+
+  /**
+   * Read persisted or imported JSON.
+   * Never throws: problems come back as `{ok: false, error}`, and salvageable
+   * payloads come back as `{ok: true, repaired: true}` with the damage patched.
+   * @returns {{ok: boolean, state: object, error?: string, repaired?: boolean}}
+   */
+  function deserialize(payload, options) {
+    var opts = options || {};
+    var now = opts.now == null ? Date.now() : opts.now;
+    var fresh = createState({ id: opts.id, now: now });
+    var raw = payload == null ? '' : String(payload).trim();
+    if (!raw) return { ok: true, state: fresh };
+
+    var parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      return { ok: false, state: fresh, error: 'Could not read saved notes: ' + err.message };
+    }
+
+    var repaired = false;
+    var report = function () {
+      repaired = true;
+    };
+
+    // A much older version stored a single buffer as a bare string.
+    if (typeof parsed === 'string') {
+      var single = createState({ id: opts.id, now: now });
+      single.notes[0].body = normalizeNewlines(parsed);
+      return { ok: true, state: single, repaired: true };
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      return { ok: false, state: fresh, error: 'Saved notes were not in a recognised format.' };
+    }
+
+    var source = Array.isArray(parsed) ? { notes: parsed } : parsed;
+    if (!Array.isArray(source.notes)) report();
+    var kept = readNotes(source.notes, report).map(function (entry) {
+      return normalizeNote(entry, now, report);
+    });
+    var seen = Object.create(null);
+    kept = kept.filter(function (note) {
+      if (seen['#' + note.id]) {
+        report();
+        return false;
+      }
+      seen['#' + note.id] = true;
+      return true;
+    });
+    if (!kept.length) {
+      kept = [makeNote({ id: opts.id, now: now })];
+      report();
+    }
+    var activeId = kept.some(function (note) {
+      return note.id === source.activeId;
+    })
+      ? source.activeId
+      : kept[0].id;
+    if (activeId !== source.activeId) report();
+
+    var state = {
+      schema: SCHEMA,
+      notes: kept,
+      activeId: activeId,
+      settings: sanitizeSettings(source.settings, defaultSettings()),
+    };
+    var result = { ok: true, state: state };
+    if (repaired) result.repaired = true;
+    return result;
+  }
+
+  /** Append notes from an export file, always under fresh ids. */
+  function importNotes(state, payload, options) {
+    var opts = options || {};
+    var now = opts.now == null ? Date.now() : opts.now;
+    var mint = opts.makeId || makeId;
+    var raw = payload == null ? '' : String(payload).trim();
+    var parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      return { ok: false, state: state, imported: 0, error: 'That file is not valid JSON.' };
+    }
+    var list = Array.isArray(parsed) ? parsed : parsed && Array.isArray(parsed.notes) ? parsed.notes : null;
+    if (!list) {
+      return { ok: false, state: state, imported: 0, error: 'No notes found in that file.' };
+    }
+    var incoming = list
+      .filter(function (entry) {
+        return entry && typeof entry === 'object' &&
+          (typeof entry.body === 'string' || typeof entry.title === 'string');
+      })
+      .map(function (entry) {
+        var note = normalizeNote(
+          {
+            id: mint(),
+            title: entry.title,
+            body: entry.body,
+            pinned: entry.pinned,
+            createdAt: entry.createdAt,
+            updatedAt: entry.updatedAt,
+          },
+          now,
+          function () {},
+        );
+        return note;
+      });
+    if (!incoming.length) {
+      return { ok: false, state: state, imported: 0, error: 'No notes found in that file.' };
+    }
+    var next = withNotes(state, state.notes.concat(incoming), incoming[0].id);
+    return { ok: true, state: next, imported: incoming.length };
+  }
+
+  var notes = {
+    SCHEMA: SCHEMA,
+    THEMES: THEMES,
+    FONTS: FONTS,
+    SORT_MODES: SORT_MODES,
+    DEFAULT_SETTINGS: DEFAULT_SETTINGS,
+    defaultSettings: defaultSettings,
+    makeId: makeId,
+    createState: createState,
+    create: createNote,
+    update: updateNote,
+    remove: removeNote,
+    duplicate: duplicateNote,
+    rename: renameNote,
+    togglePin: togglePin,
+    setActive: setActive,
+    activeNote: activeNote,
+    get: getNote,
+    indexOf: indexOfNote,
+    titleOf: titleOf,
+    snippet: snippet,
+    sort: sortNotes,
+    filter: filterNotes,
+    visible: visibleNotes,
+    updateSettings: updateSettings,
+    sanitizeSettings: sanitizeSettings,
+    serialize: serialize,
+    deserialize: deserialize,
+    importNotes: importNotes,
+  };
+
+  /* --------------------------------------------------------------- keymap --- */
+
+  /*
+   * One table describes every command: its label, which menu it lives in, and
+   * its shortcut. The menu bar, the shortcut sheet and the keyboard handler all
+   * read from here, so they can never drift apart.
+   *
+   * "Mod" is Ctrl on Windows/Linux and Command on macOS. Bindings deliberately
+   * avoid the handful of accelerators browsers refuse to release (Ctrl+N,
+   * Ctrl+T, Ctrl+W, and the zoom keys).
+   */
+  var COMMANDS = [
+    { id: 'note.new', label: 'New note', group: 'File', keys: ['Mod+Alt+N'] },
+    { id: 'note.duplicate', label: 'Duplicate note', group: 'File', keys: ['Mod+D'] },
+    { id: 'note.rename', label: 'Rename note…', group: 'File', keys: ['F2'] },
+    { id: 'note.delete', label: 'Delete note…', group: 'File', dangerous: true },
+    { id: 'file.open', label: 'Open text file…', group: 'File', keys: ['Mod+O'] },
+    { id: 'file.import', label: 'Import notes (JSON)…', group: 'File' },
+    { id: 'file.save', label: 'Save as .txt', group: 'File', keys: ['Mod+S'] },
+    { id: 'file.saveMarkdown', label: 'Save as .md', group: 'File', keys: ['Mod+Shift+S'] },
+    { id: 'file.exportAll', label: 'Export all notes (JSON)', group: 'File' },
+    { id: 'file.print', label: 'Print…', group: 'File', keys: ['Mod+P'] },
+
+    { id: 'edit.undo', label: 'Undo', group: 'Edit', keys: ['Mod+Z'] },
+    { id: 'edit.redo', label: 'Redo', group: 'Edit', keys: ['Mod+Shift+Z', 'Mod+Y'] },
+    { id: 'edit.selectAll', label: 'Select all', group: 'Edit', keys: ['Mod+A'] },
+    { id: 'edit.insertDateTime', label: 'Insert date and time', group: 'Edit', keys: ['F5'] },
+    { id: 'edit.find', label: 'Find…', group: 'Edit', keys: ['Mod+F'] },
+    { id: 'edit.findNext', label: 'Find next', group: 'Edit', keys: ['F3'] },
+    { id: 'edit.findPrev', label: 'Find previous', group: 'Edit', keys: ['Shift+F3'] },
+    { id: 'edit.replace', label: 'Replace…', group: 'Edit', keys: ['Mod+H'] },
+    { id: 'edit.gotoLine', label: 'Go to line…', group: 'Edit', keys: ['Mod+G'] },
+    { id: 'edit.upper', label: 'UPPERCASE', group: 'Edit' },
+    { id: 'edit.lower', label: 'lowercase', group: 'Edit' },
+    { id: 'edit.title', label: 'Title Case', group: 'Edit' },
+    { id: 'edit.sentence', label: 'Sentence case', group: 'Edit' },
+    { id: 'edit.sortLines', label: 'Sort lines', group: 'Edit' },
+    { id: 'edit.reverseLines', label: 'Reverse lines', group: 'Edit' },
+    { id: 'edit.dedupe', label: 'Remove duplicate lines', group: 'Edit' },
+    { id: 'edit.trimTrailing', label: 'Trim trailing spaces', group: 'Edit' },
+
+    { id: 'format.wordWrap', label: 'Word wrap', group: 'Format', toggle: 'wordWrap' },
+    { id: 'format.autoIndent', label: 'Auto indent', group: 'Format', toggle: 'autoIndent' },
+    { id: 'format.spellcheck', label: 'Check spelling', group: 'Format', toggle: 'spellcheck' },
+    { id: 'format.fontMono', label: 'Monospace', group: 'Format', radio: 'font', value: 'mono' },
+    { id: 'format.fontSans', label: 'Sans serif', group: 'Format', radio: 'font', value: 'sans' },
+    { id: 'format.fontSerif', label: 'Serif', group: 'Format', radio: 'font', value: 'serif' },
+    { id: 'format.fontBigger', label: 'Larger text', group: 'Format' },
+    { id: 'format.fontSmaller', label: 'Smaller text', group: 'Format' },
+    { id: 'format.fontReset', label: 'Reset text size', group: 'Format' },
+
+    { id: 'view.sidebar', label: 'Note list', group: 'View', keys: ['Mod+B'], toggle: 'sidebar' },
+    { id: 'view.statusBar', label: 'Status bar', group: 'View', toggle: 'statusBar' },
+    { id: 'view.themeSystem', label: 'Match system', group: 'View', radio: 'theme', value: 'system' },
+    { id: 'view.themeLight', label: 'Light', group: 'View', radio: 'theme', value: 'light' },
+    { id: 'view.themeDark', label: 'Dark', group: 'View', radio: 'theme', value: 'dark' },
+    { id: 'view.sortUpdated', label: 'Sort by last edited', group: 'View', radio: 'sortMode', value: 'updated' },
+    { id: 'view.sortCreated', label: 'Sort by date created', group: 'View', radio: 'sortMode', value: 'created' },
+    { id: 'view.sortTitle', label: 'Sort by title', group: 'View', radio: 'sortMode', value: 'title' },
+    { id: 'note.pin', label: 'Pin note', group: 'View' },
+    { id: 'note.search', label: 'Search notes', group: 'View', keys: ['Mod+E'] },
+    { id: 'view.stats', label: 'Document statistics…', group: 'View' },
+
+    { id: 'help.shortcuts', label: 'Keyboard shortcuts', group: 'Help', keys: ['F1'] },
+    { id: 'help.about', label: 'About Notepad', group: 'Help' },
+  ];
+
+  var MENUS = [
+    {
+      id: 'file',
+      label: 'File',
+      items: [
+        'note.new', 'note.duplicate', 'note.rename', 'note.delete', '-',
+        'file.open', 'file.import', '-',
+        'file.save', 'file.saveMarkdown', 'file.exportAll', '-',
+        'file.print',
+      ],
+    },
+    {
+      id: 'edit',
+      label: 'Edit',
+      items: [
+        'edit.undo', 'edit.redo', '-',
+        'edit.selectAll', 'edit.insertDateTime', '-',
+        'edit.find', 'edit.findNext', 'edit.findPrev', 'edit.replace', 'edit.gotoLine', '-',
+        'edit.upper', 'edit.lower', 'edit.title', 'edit.sentence', '-',
+        'edit.sortLines', 'edit.reverseLines', 'edit.dedupe', 'edit.trimTrailing',
+      ],
+    },
+    {
+      id: 'format',
+      label: 'Format',
+      items: [
+        'format.wordWrap', 'format.autoIndent', 'format.spellcheck', '-',
+        'format.fontMono', 'format.fontSans', 'format.fontSerif', '-',
+        'format.fontBigger', 'format.fontSmaller', 'format.fontReset',
+      ],
+    },
+    {
+      id: 'view',
+      label: 'View',
+      items: [
+        'view.sidebar', 'view.statusBar', '-',
+        'view.themeSystem', 'view.themeLight', 'view.themeDark', '-',
+        'view.sortUpdated', 'view.sortCreated', 'view.sortTitle', '-',
+        'note.pin', 'note.search', 'view.stats',
+      ],
+    },
+    { id: 'help', label: 'Help', items: ['help.shortcuts', 'help.about'] },
+  ];
+
+  var COMMAND_INDEX = Object.create(null);
+  COMMANDS.forEach(function (command) {
+    COMMAND_INDEX[command.id] = command;
+  });
+
+  function commandById(id) {
+    return COMMAND_INDEX[id] || null;
+  }
+
+  function parseBinding(binding) {
+    var parts = String(binding).split('+');
+    var wanted = parts.pop();
+    var mods = { mod: false, shift: false, alt: false };
+    parts.forEach(function (part) {
+      var name = part.toLowerCase();
+      if (name === 'mod' || name === 'ctrl' || name === 'cmd') mods.mod = true;
+      else if (name === 'shift') mods.shift = true;
+      else if (name === 'alt' || name === 'option') mods.alt = true;
+    });
+    mods.key = wanted;
+    return mods;
+  }
+
+  function bindingMatches(binding, event, mac) {
+    var spec = parseBinding(binding);
+    var pressed = event && event.key != null ? String(event.key) : '';
+    if (!pressed || pressed.toLowerCase() !== spec.key.toLowerCase()) return false;
+    var modHeld = mac ? !!event.metaKey : !!event.ctrlKey;
+    var strayPrimary = mac ? !!event.ctrlKey : !!event.metaKey;
+    if (strayPrimary) return false;
+    if (modHeld !== spec.mod) return false;
+    if (!!event.shiftKey !== spec.shift) return false;
+    if (!!event.altKey !== spec.alt) return false;
+    return true;
+  }
+
+  /**
+   * Map a keyboard event to a command id.
+   * @returns {string|null}
+   */
+  function resolveCommand(event, options) {
+    if (!event) return null;
+    var mac = !!(options && options.mac);
+    for (var i = 0; i < COMMANDS.length; i += 1) {
+      var keys = COMMANDS[i].keys || [];
+      for (var k = 0; k < keys.length; k += 1) {
+        if (bindingMatches(keys[k], event, mac)) return COMMANDS[i].id;
+      }
+    }
+    return null;
+  }
+
+  var MAC_SYMBOLS = { mod: '⌘', shift: '⇧', alt: '⌥' };
+
+  function formatBinding(binding, options) {
+    var mac = !!(options && options.mac);
+    var spec = parseBinding(binding);
+    var label = spec.key.length === 1 ? spec.key.toUpperCase() : spec.key;
+    if (mac) {
+      return (
+        (spec.alt ? MAC_SYMBOLS.alt : '') +
+        (spec.shift ? MAC_SYMBOLS.shift : '') +
+        (spec.mod ? MAC_SYMBOLS.mod : '') +
+        label
+      );
+    }
+    var parts = [];
+    if (spec.mod) parts.push('Ctrl');
+    if (spec.alt) parts.push('Alt');
+    if (spec.shift) parts.push('Shift');
+    parts.push(label);
+    return parts.join('+');
+  }
+
+  function accelFor(id, options) {
+    var command = commandById(id);
+    if (!command || !command.keys || !command.keys.length) return '';
+    return formatBinding(command.keys[0], options);
+  }
+
+  var keymap = {
+    commands: COMMANDS,
+    menus: MENUS,
+    byId: commandById,
+    resolve: resolveCommand,
+    format: formatBinding,
+    accelFor: accelFor,
+  };
+
+  /* --------------------------------------------------------------- export --- */
+
+  root.NotepadCore = {
+    version: '1.0.0',
+    text: text,
+    find: find,
+    history: history,
+    notes: notes,
+    keymap: keymap,
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+
+<script id="notepad-app">
+/*
+ * notepad-app — everything that touches the DOM.
+ *
+ * The rule this file follows: all decisions live in notepad-core, and this
+ * layer only moves values between the core and the page. That is what keeps the
+ * test suite mostly made of fast unit tests.
+ *
+ * It exposes a small public surface on window.NotepadApp (see README.md).
+ */
+(function () {
+  'use strict';
+
+  var core = window.NotepadCore;
+  var T = core.text;
+  var F = core.find;
+  var N = core.notes;
+  var K = core.keymap;
+  var H = core.history;
+
+  var STORAGE_KEY = 'notepad.state.v1';
+  var SAVE_DEBOUNCE_MS = 400;
+  var TOAST_MS = 2600;
+  var FONT_STEP = 1;
+  var IS_MAC = /Mac|iPhone|iPad|iPod/.test(
+    (window.navigator && (window.navigator.platform || window.navigator.userAgent)) || '',
+  );
+
+  var SORT_LABELS = {
+    updated: 'Last edited',
+    created: 'Date created',
+    title: 'Title',
+  };
+
+  /* ------------------------------------------------------------- elements --- */
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  var el = {};
+  [
+    'app', 'menubar', 'toggle-sidebar', 'note-title', 'sidebar', 'note-search', 'new-note',
+    'note-count', 'sort-label', 'note-list', 'note-empty', 'editor', 'statusbar',
+    'status-position', 'status-selection', 'status-counts', 'status-save',
+    'find-bar', 'find-input', 'find-prev', 'find-next', 'find-status', 'find-close',
+    'replace-row', 'replace-input', 'replace-one', 'replace-all',
+    'find-match-case', 'find-whole-word', 'find-regex',
+    'backdrop', 'toast', 'file-input', 'import-input',
+    'prompt-dialog', 'prompt-title', 'prompt-label', 'prompt-input', 'prompt-ok', 'prompt-cancel',
+    'confirm-dialog', 'confirm-title', 'confirm-message', 'confirm-ok', 'confirm-cancel',
+    'goto-dialog', 'goto-input', 'goto-ok', 'goto-cancel',
+    'stats-dialog', 'stats-body', 'stats-close',
+    'shortcuts-dialog', 'shortcuts-body', 'shortcuts-close',
+    'about-dialog', 'about-body', 'about-close',
+    'print-area', 'print-title', 'print-body',
+  ].forEach(function (id) {
+    el[id.replace(/-([a-z])/g, function (_, ch) {
+      return ch.toUpperCase();
+    })] = byId(id);
+  });
+
+  function elt(tag, className, content) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (content != null) node.textContent = content;
+    return node;
+  }
+
+  /* ---------------------------------------------------------------- state --- */
+
+  var state = null;
+  var histories = Object.create(null);
+  var searchQuery = '';
+  var saveTimer = null;
+  var toastTimer = null;
+  var openMenu = null;
+  var openDialogId = null;
+  var dialogAccept = null;
+  var dialogReturnFocus = null;
+  var saveFile = downloadFile;
+
+  function settings() {
+    return state.settings;
+  }
+
+  function activeId() {
+    return state.activeId;
+  }
+
+  function activeNote() {
+    return N.activeNote(state);
+  }
+
+  function historyFor(id) {
+    if (!histories[id]) {
+      var note = N.get(state, id);
+      histories[id] = H.create({
+        value: note ? note.body : '',
+        selectionStart: 0,
+        selectionEnd: 0,
+      });
+    }
+    return histories[id];
+  }
+
+  /* -------------------------------------------------------------- storage --- */
+
+  function readStorage() {
+    try {
+      return window.localStorage.getItem(STORAGE_KEY);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function loadState() {
+    var raw = readStorage();
+    var result = N.deserialize(raw, { now: Date.now() });
+    if (!result.ok) {
+      toast('Saved notes could not be read, so a fresh note was started.');
+    } else if (result.repaired && raw) {
+      toast('Some saved notes were damaged and have been recovered as far as possible.');
+    }
+    return result.state;
+  }
+
+  function setSaveState(kind) {
+    var labels = {
+      ready: 'Ready',
+      pending: 'Saving…',
+      saved: 'Saved',
+      error: 'Not saved — this browser is blocking storage',
+    };
+    el.statusSave.textContent = labels[kind] || '';
+    el.statusSave.dataset.state = kind;
+  }
+
+  function scheduleSave() {
+    setSaveState('pending');
+    if (saveTimer) window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(flush, SAVE_DEBOUNCE_MS);
+  }
+
+  function flush() {
+    if (saveTimer) {
+      window.clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    try {
+      window.localStorage.setItem(STORAGE_KEY, N.serialize(state));
+      setSaveState('saved');
+    } catch (err) {
+      setSaveState('error');
+    }
+  }
+
+  /* --------------------------------------------------------------- toasts --- */
+
+  function toast(message) {
+    el.toast.textContent = message;
+    el.toast.hidden = false;
+    if (toastTimer) window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(function () {
+      el.toast.hidden = true;
+    }, TOAST_MS);
+  }
+
+  /* ------------------------------------------------------------ rendering --- */
+
+  function plural(count, word) {
+    return count + ' ' + word + (count === 1 ? '' : 's');
+  }
+
+  function renderTitle() {
+    var note = activeNote();
+    var title = N.titleOf(note);
+    el.noteTitle.textContent = title;
+    document.title = title + ' — Notepad';
+  }
+
+  function renderList() {
+    var list = N.visible(state, { query: searchQuery });
+    var now = Date.now();
+    while (el.noteList.firstChild) el.noteList.removeChild(el.noteList.firstChild);
+
+    list.forEach(function (note) {
+      var row = elt('li', 'note-row');
+      row.dataset.noteId = note.id;
+      row.dataset.pinned = note.pinned ? 'true' : 'false';
+      row.setAttribute('role', 'option');
+      row.setAttribute('tabindex', '-1');
+      row.setAttribute('aria-selected', note.id === activeId() ? 'true' : 'false');
+
+      row.appendChild(elt('div', 'note-row-title', N.titleOf(note)));
+      var preview = N.snippet(note);
+      if (preview) row.appendChild(elt('div', 'note-row-snippet', preview));
+      // Deliberately nothing here that scans a whole note body: this list is
+      // rebuilt on every keystroke, so per-row work has to stay O(1)-ish.
+      row.appendChild(elt('div', 'note-row-meta', T.relativeTime(note.updatedAt, now)));
+
+      var remove = elt('button', 'row-delete', '×');
+      remove.type = 'button';
+      remove.dataset.action = 'delete';
+      remove.setAttribute('aria-label', 'Delete ' + N.titleOf(note));
+      row.appendChild(remove);
+
+      el.noteList.appendChild(row);
+    });
+
+    el.noteEmpty.hidden = list.length > 0;
+    el.noteCount.textContent = searchQuery
+      ? list.length + ' of ' + state.notes.length
+      : plural(state.notes.length, 'note');
+  }
+
+  function renderStatus() {
+    var editor = el.editor;
+    var position = T.lineColumnAt(editor.value, editor.selectionStart);
+    el.statusPosition.textContent = 'Ln ' + position.line + ', Col ' + position.column;
+    var selected = Math.abs(editor.selectionEnd - editor.selectionStart);
+    el.statusSelection.textContent = selected ? selected + ' selected' : '';
+    var stats = T.countStats(editor.value);
+    el.statusCounts.textContent =
+      plural(stats.words, 'word') + ', ' + plural(stats.chars, 'character') + ', ' + plural(stats.lines, 'line');
+  }
+
+  function renderMenuState() {
+    var config = settings();
+    K.commands.forEach(function (command) {
+      var button = el.menubar.querySelector('[data-command="' + command.id + '"]');
+      if (!button) return;
+      if (command.toggle) {
+        button.setAttribute('aria-checked', config[command.toggle] ? 'true' : 'false');
+      } else if (command.radio) {
+        button.setAttribute('aria-checked', config[command.radio] === command.value ? 'true' : 'false');
+      }
+    });
+    var pin = el.menubar.querySelector('[data-command="note.pin"] .menu-label');
+    var note = activeNote();
+    if (pin) pin.textContent = note && note.pinned ? 'Unpin note' : 'Pin note';
+  }
+
+  function applySettings() {
+    var config = settings();
+    document.documentElement.setAttribute('data-theme', config.theme);
+    el.app.setAttribute('data-font', config.font);
+    el.app.setAttribute('data-sidebar', config.sidebar ? 'on' : 'off');
+    el.app.style.setProperty('--editor-font-size', config.fontSize + 'px');
+    el.editor.setAttribute('wrap', config.wordWrap ? 'soft' : 'off');
+    el.editor.setAttribute('spellcheck', config.spellcheck ? 'true' : 'false');
+    el.editor.style.tabSize = String(config.tabSize);
+    el.statusbar.hidden = !config.statusBar;
+    el.toggleSidebar.setAttribute('aria-expanded', config.sidebar ? 'true' : 'false');
+    el.sortLabel.textContent = SORT_LABELS[config.sortMode] || '';
+  }
+
+  function renderAll() {
+    renderTitle();
+    renderList();
+    renderStatus();
+    renderMenuState();
+  }
+
+  /* ------------------------------------------------------------- editing --- */
+
+  /** Write the editor's text back to the note and refresh everything that shows it. */
+  function commitBody(value) {
+    state = N.update(state, activeId(), { body: value }, Date.now());
+    renderTitle();
+    renderList();
+    renderStatus();
+    renderMenuState();
+    scheduleSave();
+  }
+
+  /**
+   * Replace the editor's contents as a single undo step.
+   * @returns {boolean} whether anything actually changed
+   */
+  function applyEdit(value, selectionStart, selectionEnd, kind) {
+    var editor = el.editor;
+    if (value === editor.value) return false;
+    var start = T.clamp(selectionStart, 0, value.length);
+    var end = T.clamp(selectionEnd == null ? start : selectionEnd, 0, value.length);
+    var scroll = editor.scrollTop;
+    editor.value = value;
+    editor.setSelectionRange(start, end);
+    editor.scrollTop = scroll;
+    var timeline = historyFor(activeId());
+    timeline.mark();
+    timeline.push({ value: value, selectionStart: start, selectionEnd: end }, { kind: kind || 'edit', at: Date.now() });
+    timeline.mark();
+    commitBody(value);
+    return true;
+  }
+
+  function insertText(insertion) {
+    var editor = el.editor;
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var next = editor.value.slice(0, start) + insertion + editor.value.slice(end);
+    applyEdit(next, start + insertion.length, start + insertion.length, 'insert');
+  }
+
+  function loadActiveIntoEditor() {
+    var note = activeNote();
+    el.editor.value = note ? note.body : '';
+    try {
+      el.editor.setSelectionRange(0, 0);
+    } catch (err) {
+      /* older engines can refuse while the element is hidden */
+    }
+    historyFor(activeId());
+  }
+
+  function switchNote(id) {
+    if (!id || id === activeId()) return;
+    state = N.setActive(state, id);
+    loadActiveIntoEditor();
+    renderAll();
+    scheduleSave();
+  }
+
+  function transformSelection(mode) {
+    var editor = el.editor;
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var changed;
+    if (start === end) {
+      var whole = T.transformCase(editor.value, mode);
+      changed = applyEdit(whole, Math.min(start, whole.length), Math.min(end, whole.length), 'transform');
+    } else {
+      var piece = T.transformCase(editor.value.slice(start, end), mode);
+      changed = applyEdit(
+        editor.value.slice(0, start) + piece + editor.value.slice(end),
+        start,
+        start + piece.length,
+        'transform',
+      );
+    }
+    if (!changed) toast('No change to make.');
+  }
+
+  /** Run a whole-line operation over the selection, or the note if none. */
+  function transformLines(operation) {
+    var editor = el.editor;
+    var value = editor.value;
+    var start = editor.selectionStart;
+    var end = editor.selectionEnd;
+    var changed;
+    if (start === end) {
+      var whole = operation(value);
+      changed = applyEdit(whole, Math.min(start, whole.length), Math.min(start, whole.length), 'lines');
+    } else {
+      var from = T.lineBounds(value, T.lineColumnAt(value, start).line).start;
+      var to = T.lineBounds(value, T.lineColumnAt(value, end).line).end;
+      var piece = operation(value.slice(from, to));
+      changed = applyEdit(value.slice(0, from) + piece + value.slice(to), from, from + piece.length, 'lines');
+    }
+    if (!changed) toast('No change to make.');
+  }
+
+  function undo() {
+    var snapshot = historyFor(activeId()).undo();
+    if (!snapshot) {
+      toast('Nothing to undo.');
+      return;
+    }
+    el.editor.value = snapshot.value;
+    el.editor.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+    commitBody(snapshot.value);
+  }
+
+  function redo() {
+    var snapshot = historyFor(activeId()).redo();
+    if (!snapshot) {
+      toast('Nothing to redo.');
+      return;
+    }
+    el.editor.value = snapshot.value;
+    el.editor.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+    commitBody(snapshot.value);
+  }
+
+  /* ------------------------------------------------------------- settings --- */
+
+  function updateSettings(patch) {
+    state = N.updateSettings(state, patch);
+    applySettings();
+    renderList();
+    renderMenuState();
+    scheduleSave();
+  }
+
+  function toggleSetting(key) {
+    var patch = {};
+    patch[key] = !settings()[key];
+    updateSettings(patch);
+    if (key === 'sidebar' && !patch.sidebar && el.sidebar.contains(document.activeElement)) {
+      el.editor.focus();
+    }
+  }
+
+  /* --------------------------------------------------------------- menus --- */
+
+  function menuTitle(id) {
+    return el.menubar.querySelector('[data-menu="' + id + '"]');
+  }
+
+  function menuPanel(id) {
+    return el.menubar.querySelector('[data-menu-panel="' + id + '"]');
+  }
+
+  function menuItems(id) {
+    return Array.prototype.slice.call(menuPanel(id).querySelectorAll('[data-command]'));
+  }
+
+  function buildMenus() {
+    K.menus.forEach(function (menu) {
+      var holder = elt('div', 'menu-holder');
+      var title = elt('button', 'menu-title', menu.label);
+      title.type = 'button';
+      title.dataset.menu = menu.id;
+      title.setAttribute('role', 'menuitem');
+      title.setAttribute('aria-haspopup', 'true');
+      title.setAttribute('aria-expanded', 'false');
+      title.setAttribute('aria-controls', 'menu-panel-' + menu.id);
+
+      var panel = elt('div', 'menu');
+      panel.id = 'menu-panel-' + menu.id;
+      panel.dataset.menuPanel = menu.id;
+      panel.setAttribute('role', 'menu');
+      panel.setAttribute('aria-label', menu.label);
+      panel.hidden = true;
+
+      menu.items.forEach(function (id) {
+        if (id === '-') {
+          var separator = elt('div', 'menu-sep');
+          separator.setAttribute('role', 'separator');
+          panel.appendChild(separator);
+          return;
+        }
+        var command = K.byId(id);
+        if (!command) return;
+        var item = elt('button', 'menu-item');
+        item.type = 'button';
+        item.dataset.command = id;
+        item.setAttribute('tabindex', '-1');
+        item.setAttribute(
+          'role',
+          command.toggle ? 'menuitemcheckbox' : command.radio ? 'menuitemradio' : 'menuitem',
+        );
+        if (command.dangerous) item.dataset.dangerous = 'true';
+        item.appendChild(elt('span', 'menu-label', command.label));
+        var accelerator = K.accelFor(id, { mac: IS_MAC });
+        if (accelerator) item.appendChild(elt('span', 'menu-accel', accelerator));
+        panel.appendChild(item);
+      });
+
+      holder.appendChild(title);
+      holder.appendChild(panel);
+      el.menubar.appendChild(holder);
+    });
+  }
+
+  function closeMenu(restoreFocus) {
+    if (!openMenu) return;
+    var id = openMenu;
+    openMenu = null;
+    menuPanel(id).hidden = true;
+    menuTitle(id).setAttribute('aria-expanded', 'false');
+    if (restoreFocus) menuTitle(id).focus();
+  }
+
+  function showMenu(id) {
+    if (openMenu === id) {
+      closeMenu(true);
+      return;
+    }
+    closeMenu(false);
+    openMenu = id;
+    menuPanel(id).hidden = false;
+    menuTitle(id).setAttribute('aria-expanded', 'true');
+    renderMenuState();
+    var items = menuItems(id);
+    if (items.length) items[0].focus();
+  }
+
+  function moveMenuFocus(step) {
+    var items = menuItems(openMenu);
+    if (!items.length) return;
+    var current = items.indexOf(document.activeElement);
+    var next = current === -1 ? 0 : (current + step + items.length) % items.length;
+    items[next].focus();
+  }
+
+  function stepMenu(step) {
+    var ids = K.menus.map(function (menu) {
+      return menu.id;
+    });
+    var at = ids.indexOf(openMenu);
+    showMenu(ids[(at + step + ids.length) % ids.length]);
+  }
+
+  /* -------------------------------------------------------------- dialogs --- */
+
+  var FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+  function focusablesIn(id) {
+    return Array.prototype.slice.call(byId(id).querySelectorAll(FOCUSABLE)).filter(function (node) {
+      return !node.disabled && !node.hidden;
+    });
+  }
+
+  function closeDialog(restoreFocus) {
+    if (!openDialogId) return;
+    byId(openDialogId).hidden = true;
+    el.backdrop.hidden = true;
+    var back = dialogReturnFocus;
+    openDialogId = null;
+    dialogAccept = null;
+    dialogReturnFocus = null;
+    if (restoreFocus !== false && back && back.focus) back.focus();
+  }
+
+  function openDialog(id, options) {
+    var opts = options || {};
+    // Whatever had focus gets it back on close — unless that was a menu item or
+    // another dialog's control, which will be hidden by the time we return.
+    var previous = document.activeElement;
+    var transient = !previous || previous === document.body ||
+      (previous.closest && previous.closest('.dialog, .menu'));
+    closeDialog(false);
+    dialogReturnFocus = opts.returnFocus || (transient ? el.editor : previous);
+    dialogAccept = opts.onAccept || null;
+    openDialogId = id;
+    el.backdrop.hidden = false;
+    byId(id).hidden = false;
+    var target = opts.focus ? byId(opts.focus) : focusablesIn(id)[0];
+    if (target) {
+      target.focus();
+      if (opts.selectText && target.select) target.select();
+    }
+  }
+
+  function acceptDialog() {
+    var accept = dialogAccept;
+    closeDialog(true);
+    if (accept) accept();
+  }
+
+  function confirmAction(message, onAccept) {
+    el.confirmMessage.textContent = message;
+    openDialog('confirm-dialog', { onAccept: onAccept, focus: 'confirm-cancel' });
+  }
+
+  function promptFor(options, onAccept) {
+    el.promptTitle.textContent = options.title;
+    el.promptLabel.textContent = options.label;
+    el.promptOk.textContent = options.action || 'OK';
+    el.promptInput.value = options.value || '';
+    openDialog('prompt-dialog', {
+      focus: 'prompt-input',
+      selectText: true,
+      onAccept: function () {
+        onAccept(el.promptInput.value);
+      },
+    });
+  }
+
+  function showStats() {
+    var stats = T.countStats(el.editor.value);
+    var rows = [
+      ['Words', stats.words],
+      ['Characters', stats.chars],
+      ['Characters without spaces', stats.charsNoSpaces],
+      ['Lines', stats.lines],
+      ['Paragraphs', stats.paragraphs],
+      ['Sentences', stats.sentences],
+      ['Reading time', stats.words < T.WORDS_PER_MINUTE ? 'under a minute' : plural(stats.readingMinutes, 'minute')],
+    ];
+    while (el.statsBody.firstChild) el.statsBody.removeChild(el.statsBody.firstChild);
+    rows.forEach(function (row) {
+      el.statsBody.appendChild(elt('dt', null, row[0]));
+      el.statsBody.appendChild(elt('dd', null, String(row[1])));
+    });
+    openDialog('stats-dialog');
+  }
+
+  function buildShortcuts() {
+    var groups = [];
+    K.commands.forEach(function (command) {
+      if (!command.keys || !command.keys.length) return;
+      var group = groups.filter(function (entry) {
+        return entry.name === command.group;
+      })[0];
+      if (!group) {
+        group = { name: command.group, items: [] };
+        groups.push(group);
+      }
+      group.items.push(command);
+    });
+
+    while (el.shortcutsBody.firstChild) el.shortcutsBody.removeChild(el.shortcutsBody.firstChild);
+    groups.forEach(function (group) {
+      var head = document.createElement('tr');
+      var heading = document.createElement('th');
+      heading.colSpan = 2;
+      heading.textContent = group.name;
+      head.appendChild(heading);
+      el.shortcutsBody.appendChild(head);
+
+      group.items.forEach(function (command) {
+        var row = document.createElement('tr');
+        row.appendChild(elt('td', null, command.label));
+        var cell = document.createElement('td');
+        command.keys.forEach(function (binding, index) {
+          if (index) cell.appendChild(document.createTextNode(' or '));
+          cell.appendChild(elt('kbd', null, K.format(binding, { mac: IS_MAC })));
+        });
+        row.appendChild(cell);
+        el.shortcutsBody.appendChild(row);
+      });
+    });
+  }
+
+  /* ----------------------------------------------------------------- find --- */
+
+  function findOptions() {
+    return {
+      query: el.findInput.value,
+      matchCase: el.findMatchCase.checked,
+      wholeWord: el.findWholeWord.checked,
+      useRegex: el.findRegex.checked,
+    };
+  }
+
+  function setFindStatus(message, isError) {
+    el.findStatus.textContent = message;
+    el.findStatus.dataset.error = isError ? 'true' : 'false';
+  }
+
+  /** Keep the match visible without stealing focus from the find box. */
+  function scrollSelectionIntoView() {
+    var editor = el.editor;
+    var line = T.lineColumnAt(editor.value, editor.selectionStart).line;
+    var lineHeight = parseFloat(window.getComputedStyle(editor).lineHeight);
+    if (!isFinite(lineHeight) || !editor.clientHeight) return;
+    var target = (line - 1) * lineHeight - editor.clientHeight / 2;
+    editor.scrollTop = Math.max(0, target);
+  }
+
+  function runFind(mode) {
+    var editor = el.editor;
+    var options = findOptions();
+    if (!options.query) {
+      setFindStatus('', false);
+      return null;
+    }
+    var compiled = F.compile(options);
+    if (!compiled.ok) {
+      setFindStatus(compiled.error, true);
+      return null;
+    }
+    var from = mode === 'next' ? editor.selectionEnd : editor.selectionStart;
+    var match = mode === 'prev'
+      ? F.findPrev(editor.value, options, from)
+      : F.findNext(editor.value, options, from);
+    if (!match) {
+      setFindStatus('No matches', false);
+      return null;
+    }
+    editor.setSelectionRange(match.start, match.end);
+    scrollSelectionIntoView();
+    setFindStatus(match.index + 1 + ' of ' + match.total, false);
+    renderStatus();
+    return match;
+  }
+
+  function openFind(withReplace) {
+    el.findBar.hidden = false;
+    el.replaceRow.hidden = !withReplace;
+    var editor = el.editor;
+    var selected = editor.value.slice(editor.selectionStart, editor.selectionEnd);
+    if (selected && selected.indexOf('\n') === -1) el.findInput.value = selected;
+    el.findInput.focus();
+    el.findInput.select();
+    if (el.findInput.value) runFind('first');
+  }
+
+  function closeFind() {
+    el.findBar.hidden = true;
+    el.editor.focus();
+  }
+
+  function replaceCurrent() {
+    var editor = el.editor;
+    var options = findOptions();
+    if (!options.query) return;
+    var compiled = F.compile(options);
+    if (!compiled.ok) {
+      setFindStatus(compiled.error, true);
+      return;
+    }
+    var match = F.findNext(editor.value, options, editor.selectionStart);
+    if (!match) {
+      setFindStatus('No matches', false);
+      return;
+    }
+    // The first press lands on a match; the next one replaces it.
+    if (match.start !== editor.selectionStart || match.end !== editor.selectionEnd) {
+      editor.setSelectionRange(match.start, match.end);
+      setFindStatus(match.index + 1 + ' of ' + match.total, false);
+      return;
+    }
+    var result = F.replaceMatch(editor.value, match, el.replaceInput.value, options);
+    applyEdit(result.text, result.selectionStart, result.selectionEnd, 'replace');
+    runFind('next');
+  }
+
+  function replaceEverything() {
+    var options = findOptions();
+    if (!options.query) return;
+    var compiled = F.compile(options);
+    if (!compiled.ok) {
+      setFindStatus(compiled.error, true);
+      return;
+    }
+    var result = F.replaceAll(el.editor.value, options, el.replaceInput.value);
+    if (!result.count) {
+      setFindStatus('No matches', false);
+      return;
+    }
+    applyEdit(result.text, Math.min(el.editor.selectionStart, result.text.length), null, 'replaceAll');
+    setFindStatus('Replaced ' + result.count, false);
+    toast('Replaced ' + plural(result.count, 'match') + '.');
+  }
+
+  /* ----------------------------------------------------------------- files --- */
+
+  function downloadFile(file) {
+    var blob = new window.Blob([file.text], { type: file.mime });
+    var url = window.URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(function () {
+      window.URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
+  function saveActiveNote(extension, mime) {
+    var name = T.suggestFilename(N.titleOf(activeNote()), extension);
+    saveFile({ name: name, mime: mime, text: el.editor.value });
+    toast('Saved ' + name);
+  }
+
+  function exportEverything() {
+    var stamp = new Date().toISOString().slice(0, 10);
+    var name = 'notepad-notes-' + stamp + '.json';
+    saveFile({ name: name, mime: 'application/json', text: N.serialize(state) });
+    toast('Exported ' + plural(state.notes.length, 'note') + ' to ' + name);
+  }
+
+  function openText(name, content) {
+    var base = String(name == null ? '' : name).replace(/\.[^./\\]+$/, '');
+    state = N.create(state, { now: Date.now(), title: base, body: content });
+    loadActiveIntoEditor();
+    renderAll();
+    flush();
+    toast('Opened ' + (name || 'file'));
+    el.editor.focus();
+    return N.get(state, activeId());
+  }
+
+  function importJson(payload) {
+    var result = N.importNotes(state, payload, { now: Date.now(), makeId: N.makeId });
+    if (!result.ok) {
+      toast(result.error);
+      return result;
+    }
+    state = result.state;
+    loadActiveIntoEditor();
+    renderAll();
+    flush();
+    toast('Imported ' + plural(result.imported, 'note') + '.');
+    return result;
+  }
+
+  function readChosenFile(input, onText) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    var reader = new window.FileReader();
+    reader.onload = function () {
+      onText(file.name, String(reader.result == null ? '' : reader.result));
+    };
+    reader.onerror = function () {
+      toast('That file could not be read.');
+    };
+    reader.readAsText(file);
+    input.value = '';
+  }
+
+  function printNote() {
+    el.printTitle.textContent = N.titleOf(activeNote());
+    el.printBody.textContent = el.editor.value;
+    window.print();
+  }
+
+  /* -------------------------------------------------------------- commands --- */
+
+  var commands = {
+    'note.new': function () {
+      state = N.create(state, { now: Date.now() });
+      loadActiveIntoEditor();
+      searchQuery = '';
+      el.noteSearch.value = '';
+      renderAll();
+      scheduleSave();
+      el.editor.focus();
+    },
+    'note.duplicate': function () {
+      state = N.duplicate(state, activeId(), { now: Date.now() });
+      loadActiveIntoEditor();
+      renderAll();
+      scheduleSave();
+      el.editor.focus();
+    },
+    'note.rename': function () {
+      var note = activeNote();
+      promptFor(
+        { title: 'Rename note', label: 'Note title', action: 'Rename', value: note.title },
+        function (value) {
+          state = N.rename(state, note.id, value, Date.now());
+          renderAll();
+          scheduleSave();
+        },
+      );
+    },
+    'note.delete': function (options) {
+      var id = (options && options.noteId) || activeId();
+      var note = N.get(state, id);
+      if (!note) return;
+      confirmAction('Delete “' + N.titleOf(note) + '”? This cannot be undone.', function () {
+        state = N.remove(state, id, { now: Date.now() });
+        delete histories[id];
+        loadActiveIntoEditor();
+        renderAll();
+        scheduleSave();
+        toast('Note deleted.');
+      });
+    },
+    'note.pin': function () {
+      var note = activeNote();
+      state = N.togglePin(state, note.id);
+      renderAll();
+      scheduleSave();
+      toast(N.get(state, note.id).pinned ? 'Note pinned.' : 'Note unpinned.');
+    },
+    'note.search': function () {
+      if (!settings().sidebar) updateSettings({ sidebar: true });
+      el.noteSearch.focus();
+      el.noteSearch.select();
+    },
+
+    'file.open': function () {
+      el.fileInput.click();
+    },
+    'file.import': function () {
+      el.importInput.click();
+    },
+    'file.save': function () {
+      saveActiveNote('.txt', 'text/plain;charset=utf-8');
+    },
+    'file.saveMarkdown': function () {
+      saveActiveNote('.md', 'text/markdown;charset=utf-8');
+    },
+    'file.exportAll': exportEverything,
+    'file.print': printNote,
+
+    'edit.undo': undo,
+    'edit.redo': redo,
+    'edit.selectAll': function () {
+      el.editor.focus();
+      el.editor.setSelectionRange(0, el.editor.value.length);
+      renderStatus();
+    },
+    'edit.insertDateTime': function () {
+      insertText(T.formatDateTime(new Date()));
+    },
+    'edit.find': function () {
+      openFind(false);
+    },
+    'edit.replace': function () {
+      openFind(true);
+    },
+    'edit.findNext': function () {
+      if (el.findBar.hidden && !el.findInput.value) {
+        openFind(false);
+        return;
+      }
+      runFind('next');
+    },
+    'edit.findPrev': function () {
+      if (el.findBar.hidden && !el.findInput.value) {
+        openFind(false);
+        return;
+      }
+      runFind('prev');
+    },
+    'edit.gotoLine': function () {
+      el.gotoInput.value = String(T.lineColumnAt(el.editor.value, el.editor.selectionStart).line);
+      openDialog('goto-dialog', {
+        focus: 'goto-input',
+        selectText: true,
+        returnFocus: el.editor,
+        onAccept: function () {
+          var line = parseInt(el.gotoInput.value, 10);
+          if (!isFinite(line)) return;
+          var bounds = T.lineBounds(el.editor.value, line);
+          el.editor.setSelectionRange(bounds.start, bounds.start);
+          renderStatus();
+        },
+      });
+    },
+    'edit.upper': function () {
+      transformSelection('upper');
+    },
+    'edit.lower': function () {
+      transformSelection('lower');
+    },
+    'edit.title': function () {
+      transformSelection('title');
+    },
+    'edit.sentence': function () {
+      transformSelection('sentence');
+    },
+    'edit.sortLines': function () {
+      transformLines(function (value) {
+        return T.sortLines(value);
+      });
+    },
+    'edit.reverseLines': function () {
+      transformLines(T.reverseLines);
+    },
+    'edit.dedupe': function () {
+      transformLines(T.dedupeLines);
+    },
+    'edit.trimTrailing': function () {
+      transformLines(T.trimTrailingWhitespace);
+    },
+
+    'format.wordWrap': function () {
+      toggleSetting('wordWrap');
+    },
+    'format.autoIndent': function () {
+      toggleSetting('autoIndent');
+    },
+    'format.spellcheck': function () {
+      toggleSetting('spellcheck');
+    },
+    'format.fontMono': function () {
+      updateSettings({ font: 'mono' });
+    },
+    'format.fontSans': function () {
+      updateSettings({ font: 'sans' });
+    },
+    'format.fontSerif': function () {
+      updateSettings({ font: 'serif' });
+    },
+    'format.fontBigger': function () {
+      updateSettings({ fontSize: settings().fontSize + FONT_STEP });
+    },
+    'format.fontSmaller': function () {
+      updateSettings({ fontSize: settings().fontSize - FONT_STEP });
+    },
+    'format.fontReset': function () {
+      updateSettings({ fontSize: N.DEFAULT_SETTINGS.fontSize });
+    },
+
+    'view.sidebar': function () {
+      toggleSetting('sidebar');
+    },
+    'view.statusBar': function () {
+      toggleSetting('statusBar');
+    },
+    'view.themeSystem': function () {
+      updateSettings({ theme: 'system' });
+    },
+    'view.themeLight': function () {
+      updateSettings({ theme: 'light' });
+    },
+    'view.themeDark': function () {
+      updateSettings({ theme: 'dark' });
+    },
+    'view.sortUpdated': function () {
+      updateSettings({ sortMode: 'updated' });
+    },
+    'view.sortCreated': function () {
+      updateSettings({ sortMode: 'created' });
+    },
+    'view.sortTitle': function () {
+      updateSettings({ sortMode: 'title' });
+    },
+    'view.stats': showStats,
+
+    'help.shortcuts': function () {
+      openDialog('shortcuts-dialog');
+    },
+    'help.about': function () {
+      el.aboutBody.textContent =
+        'Notepad ' + core.version + ' — one HTML file, no dependencies, no accounts, no build step.';
+      openDialog('about-dialog');
+    },
+  };
+
+  function run(id, options) {
+    var command = commands[id];
+    if (!command) return false;
+    command(options);
+    return true;
+  }
+
+  /* --------------------------------------------------------------- events --- */
+
+  /** Shortcuts that would fight with typing in a plain text box. */
+  function commandAllowedFrom(id, target) {
+    if (!target || target.tagName !== 'INPUT') return true;
+    return /^(file\.|view\.|help\.|note\.|format\.)/.test(id) ||
+      /^edit\.(find|findNext|findPrev|replace|gotoLine)$/.test(id);
+  }
+
+  function handleDialogKeys(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDialog(true);
+      return;
+    }
+    if (event.key === 'Enter' && event.target && event.target.tagName === 'INPUT') {
+      event.preventDefault();
+      acceptDialog();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    var items = focusablesIn(openDialogId);
+    if (!items.length) return;
+    var first = items[0];
+    var last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function wireEditor() {
+    var editor = el.editor;
+
+    editor.addEventListener('input', function () {
+      historyFor(activeId()).push(
+        {
+          value: editor.value,
+          selectionStart: editor.selectionStart,
+          selectionEnd: editor.selectionEnd,
+        },
+        { kind: 'type', at: Date.now() },
+      );
+      commitBody(editor.value);
+    });
+
+    ['keyup', 'click', 'select', 'focus'].forEach(function (type) {
+      editor.addEventListener(type, function () {
+        historyFor(activeId()).push(
+          {
+            value: editor.value,
+            selectionStart: editor.selectionStart,
+            selectionEnd: editor.selectionEnd,
+          },
+          { kind: 'caret', at: Date.now() },
+        );
+        renderStatus();
+      });
+    });
+
+    editor.addEventListener('keydown', function (event) {
+      // Never rewrite the value mid-composition: it would drop the IME buffer.
+      if (event.isComposing) return;
+      if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        var tab = settings().softTabs ? new Array(settings().tabSize + 1).join(' ') : '\t';
+        var result = T.indentBlock(editor.value, editor.selectionStart, editor.selectionEnd, {
+          tab: tab,
+          outdent: event.shiftKey,
+        });
+        applyEdit(result.text, result.selectionStart, result.selectionEnd, 'indent');
+        return;
+      }
+      if (
+        event.key === 'Enter' &&
+        settings().autoIndent &&
+        !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey
+      ) {
+        event.preventDefault();
+        insertText(T.autoIndent(editor.value, editor.selectionStart));
+      }
+    });
+  }
+
+  function wireSidebar() {
+    el.newNote.addEventListener('click', function () {
+      run('note.new');
+    });
+
+    el.toggleSidebar.addEventListener('click', function () {
+      run('view.sidebar');
+    });
+
+    el.noteSearch.addEventListener('input', function () {
+      searchQuery = el.noteSearch.value;
+      renderList();
+    });
+
+    el.noteSearch.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        el.noteSearch.value = '';
+        searchQuery = '';
+        renderList();
+        el.editor.focus();
+        return;
+      }
+      if (event.key === 'ArrowDown') {
+        var first = el.noteList.querySelector('[data-note-id]');
+        if (first) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    });
+
+    el.noteList.addEventListener('click', function (event) {
+      var action = event.target.closest ? event.target.closest('[data-action]') : null;
+      var row = event.target.closest ? event.target.closest('[data-note-id]') : null;
+      if (!row) return;
+      if (action && action.dataset.action === 'delete') {
+        event.stopPropagation();
+        run('note.delete', { noteId: row.dataset.noteId });
+        return;
+      }
+      switchNote(row.dataset.noteId);
+      el.editor.focus();
+    });
+
+    el.noteList.addEventListener('keydown', function (event) {
+      var rows = Array.prototype.slice.call(el.noteList.querySelectorAll('[data-note-id]'));
+      if (!rows.length) return;
+      var active = document.activeElement && document.activeElement.closest
+        ? document.activeElement.closest('[data-note-id]')
+        : null;
+      var at = rows.indexOf(active);
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        var step = event.key === 'ArrowDown' ? 1 : -1;
+        var next = at === -1 ? 0 : (at + step + rows.length) % rows.length;
+        rows[next].focus();
+        return;
+      }
+      if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        rows[event.key === 'Home' ? 0 : rows.length - 1].focus();
+        return;
+      }
+      if ((event.key === 'Enter' || event.key === ' ') && active) {
+        event.preventDefault();
+        switchNote(active.dataset.noteId);
+        el.editor.focus();
+        return;
+      }
+      if (event.key === 'Delete' && active) {
+        event.preventDefault();
+        run('note.delete', { noteId: active.dataset.noteId });
+      }
+    });
+
+    el.noteTitle.addEventListener('dblclick', function () {
+      run('note.rename');
+    });
+  }
+
+  function wireMenus() {
+    el.menubar.addEventListener('click', function (event) {
+      var title = event.target.closest ? event.target.closest('[data-menu]') : null;
+      if (title) {
+        showMenu(title.dataset.menu);
+        return;
+      }
+      var item = event.target.closest ? event.target.closest('[data-command]') : null;
+      if (!item) return;
+      var inMenu = openMenu;
+      closeMenu(false);
+      run(item.dataset.command);
+      if (inMenu && document.activeElement === document.body) el.editor.focus();
+    });
+
+    el.menubar.addEventListener('keydown', function (event) {
+      if (!openMenu) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMenu(true);
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        moveMenuFocus(1);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveMenuFocus(-1);
+      } else if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        var items = menuItems(openMenu);
+        items[event.key === 'Home' ? 0 : items.length - 1].focus();
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        stepMenu(1);
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        stepMenu(-1);
+      } else if (event.key === 'Tab') {
+        closeMenu(false);
+      }
+    });
+
+    document.addEventListener('click', function (event) {
+      if (openMenu && !el.menubar.contains(event.target)) closeMenu(false);
+    });
+  }
+
+  function wireFind() {
+    el.findInput.addEventListener('input', function () {
+      runFind('first');
+    });
+    el.findBar.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeFind();
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (event.target === el.replaceInput) replaceCurrent();
+        else runFind(event.shiftKey ? 'prev' : 'next');
+      }
+    });
+    el.findNext.addEventListener('click', function () {
+      runFind('next');
+    });
+    el.findPrev.addEventListener('click', function () {
+      runFind('prev');
+    });
+    el.findClose.addEventListener('click', closeFind);
+    el.replaceOne.addEventListener('click', replaceCurrent);
+    el.replaceAll.addEventListener('click', replaceEverything);
+    [el.findMatchCase, el.findWholeWord, el.findRegex].forEach(function (box) {
+      box.addEventListener('change', function () {
+        runFind('first');
+      });
+    });
+  }
+
+  function wireDialogs() {
+    el.backdrop.addEventListener('click', function () {
+      closeDialog(true);
+    });
+    el.promptOk.addEventListener('click', acceptDialog);
+    el.confirmOk.addEventListener('click', acceptDialog);
+    el.gotoOk.addEventListener('click', acceptDialog);
+    [el.promptCancel, el.confirmCancel, el.gotoCancel, el.statsClose, el.shortcutsClose, el.aboutClose]
+      .forEach(function (button) {
+        button.addEventListener('click', function () {
+          closeDialog(true);
+        });
+      });
+  }
+
+  function wireFiles() {
+    el.fileInput.addEventListener('change', function () {
+      readChosenFile(el.fileInput, openText);
+    });
+    el.importInput.addEventListener('change', function () {
+      readChosenFile(el.importInput, function (name, content) {
+        importJson(content);
+      });
+    });
+
+    el.editor.addEventListener('dragover', function (event) {
+      var types = event.dataTransfer && event.dataTransfer.types;
+      if (types && Array.prototype.indexOf.call(types, 'Files') !== -1) event.preventDefault();
+    });
+
+    // A dropped file becomes a note; dropped text is left to the browser to paste.
+    el.editor.addEventListener('drop', function (event) {
+      var files = event.dataTransfer && event.dataTransfer.files;
+      if (!files || !files.length) return;
+      event.preventDefault();
+      var file = files[0];
+      var reader = new window.FileReader();
+      reader.onload = function () {
+        var content = String(reader.result == null ? '' : reader.result);
+        if (/\.json$/i.test(file.name)) importJson(content);
+        else openText(file.name, content);
+      };
+      reader.onerror = function () {
+        toast('That file could not be read.');
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function wireKeyboard() {
+    document.addEventListener('keydown', function (event) {
+      if (openDialogId) {
+        handleDialogKeys(event);
+        return;
+      }
+      var id = K.resolve(event, { mac: IS_MAC });
+      if (!id || !commandAllowedFrom(id, event.target)) return;
+      event.preventDefault();
+      run(id);
+    });
+
+    window.addEventListener('beforeunload', function () {
+      if (saveTimer) flush();
+    });
+  }
+
+  /* ----------------------------------------------------------------- boot --- */
+
+  function mount() {
+    buildMenus();
+    buildShortcuts();
+    state = loadState();
+    applySettings();
+    loadActiveIntoEditor();
+    renderAll();
+    setSaveState('ready');
+
+    wireEditor();
+    wireSidebar();
+    wireMenus();
+    wireFind();
+    wireDialogs();
+    wireFiles();
+    wireKeyboard();
+
+    el.editor.focus();
+  }
+
+  mount();
+
+  /**
+   * Public surface. Deliberately small: enough to drive the app from tests or
+   * an embedding page, without exposing internals that would freeze the design.
+   */
+  window.NotepadApp = {
+    version: core.version,
+    /** Execute a command by id (see NotepadCore.keymap.commands). */
+    run: run,
+    /** A snapshot of the notes and settings, safe to inspect. */
+    getState: function () {
+      return JSON.parse(N.serialize(state));
+    },
+    /** Write pending changes to storage immediately. */
+    flush: flush,
+    /** Replace how files are handed to the browser: fn({name, mime, text}). */
+    setFileSaver: function (fn) {
+      saveFile = typeof fn === 'function' ? fn : downloadFile;
+    },
+    /** Create a note from a file's name and contents. */
+    openText: openText,
+    /** Merge notes from an exported JSON payload. */
+    importJson: importJson,
+    /** Show a transient message in the status area. */
+    notify: toast,
+  };
+})();
+</script>
+</body>
+</html>

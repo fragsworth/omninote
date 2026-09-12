@@ -1,0 +1,2629 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="A plain-text notepad that runs from a single HTML file and saves your notes in this browser.">
+<title>Notepad</title>
+<style>
+/* ------------------------------------------------------------------ tokens */
+:root {
+  --bg: #f4f4f5;
+  --bg-panel: #ffffff;
+  --bg-raised: #ffffff;
+  --bg-sunken: #e9e9ec;
+  --bg-hover: #ececf0;
+  --bg-active: #e0e7ff;
+  --fg: #1c1c20;
+  --fg-muted: #63636d;
+  --fg-faint: #8b8b95;
+  --accent: #3b5bdb;
+  --accent-fg: #ffffff;
+  --accent-soft: #dbe3ff;
+  --border: #d8d8de;
+  --border-strong: #bcbcc6;
+  --danger: #c92a2a;
+  --warn: #a8690b;
+  --ok: #2b7a3d;
+  --shadow: 0 8px 24px rgba(20, 20, 30, 0.14);
+  --shadow-sm: 0 1px 2px rgba(20, 20, 30, 0.08);
+  --radius: 8px;
+  --radius-sm: 5px;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: Georgia, "Times New Roman", "Liberation Serif", serif;
+  --editor-font: var(--font-mono);
+  --editor-size: 16px;
+  --sidebar-width: 272px;
+  --row-h: 34px;
+}
+:root:not([data-theme="light"]) {
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17171a;
+    --bg-panel: #1e1e22;
+    --bg-raised: #26262b;
+    --bg-sunken: #121215;
+    --bg-hover: #2c2c33;
+    --bg-active: #2b3555;
+    --fg: #e9e9ee;
+    --fg-muted: #a2a2ad;
+    --fg-faint: #7a7a86;
+    --accent: #93a8ff;
+    --accent-fg: #10101a;
+    --accent-soft: #2b3555;
+    --border: #33333b;
+    --border-strong: #4a4a55;
+    --danger: #ff8787;
+    --warn: #ffc078;
+    --ok: #8ce99a;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #17171a;
+  --bg-panel: #1e1e22;
+  --bg-raised: #26262b;
+  --bg-sunken: #121215;
+  --bg-hover: #2c2c33;
+  --bg-active: #2b3555;
+  --fg: #e9e9ee;
+  --fg-muted: #a2a2ad;
+  --fg-faint: #7a7a86;
+  --accent: #93a8ff;
+  --accent-fg: #10101a;
+  --accent-soft: #2b3555;
+  --border: #33333b;
+  --border-strong: #4a4a55;
+  --danger: #ff8787;
+  --warn: #ffc078;
+  --ok: #8ce99a;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* ------------------------------------------------------------------- reset */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+[hidden] { display: none !important; }
+
+/* --------------------------------------------------------------- structure */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+#workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+/* ------------------------------------------------------------------ topbar */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+#brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  padding: 0 10px 0 4px;
+  color: var(--fg);
+}
+#brand svg { display: block; color: var(--accent); }
+.menubar { display: flex; gap: 2px; }
+.menu-root { position: relative; }
+.menu-button {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.menu-button:hover { background: var(--bg-hover); color: var(--fg); }
+.menu-button[aria-expanded="true"] {
+  background: var(--bg-active);
+  color: var(--fg);
+}
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 232px;
+  padding: 5px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 60;
+}
+.menu hr { border: 0; border-top: 1px solid var(--border); margin: 5px 2px; }
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  white-space: nowrap;
+}
+.menu-item:hover, .menu-item:focus-visible { background: var(--bg-hover); }
+.menu-item .hint {
+  margin-left: auto;
+  color: var(--fg-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.menu-item .state { color: var(--accent); width: 1em; }
+#topbar .spacer { flex: 1; }
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.icon-button:hover { background: var(--bg-hover); color: var(--fg); }
+.icon-button[aria-pressed="true"] { background: var(--bg-active); color: var(--fg); }
+.primary {
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+  padding: 0 12px;
+}
+.primary:hover { background: var(--accent); filter: brightness(1.08); color: var(--accent-fg); }
+
+/* ----------------------------------------------------------------- sidebar */
+#sidebar {
+  width: var(--sidebar-width);
+  flex: 0 0 var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+}
+body.sidebar-hidden #sidebar, body.focus-mode #sidebar { display: none; }
+#sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+}
+#search {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  background: var(--bg-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+#search:focus { border-color: var(--accent); background: var(--bg-panel); }
+#sidebar-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 8px;
+  color: var(--fg-faint);
+  font-size: 12px;
+}
+#sort-mode {
+  margin-left: auto;
+  height: 26px;
+  padding: 0 4px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+#note-list, #trash-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 6px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+#trash-list { flex: 0 1 auto; max-height: 30vh; }
+.note-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  border-radius: var(--radius);
+  margin-bottom: 2px;
+}
+.note-row:hover { background: var(--bg-hover); }
+.note-row.is-active { background: var(--bg-active); }
+.note-open {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  padding: 7px 8px;
+  text-align: left;
+  border-radius: var(--radius);
+}
+.note-open .title {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-weight: 560;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-open .pin-mark { color: var(--accent); font-size: 11px; }
+.note-open .meta {
+  display: flex;
+  gap: 6px;
+  color: var(--fg-faint);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-open .meta .preview { overflow: hidden; text-overflow: ellipsis; }
+.row-action {
+  opacity: 0;
+  width: 26px;
+  height: 26px;
+  margin-top: 5px;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  flex: 0 0 auto;
+}
+.note-row:hover .row-action, .row-action:focus-visible, .note-row.is-active .row-action { opacity: 1; }
+.note-row .row-action.is-on { opacity: 1; color: var(--accent); }
+.row-action:hover { background: var(--bg-sunken); color: var(--fg); }
+.row-action.danger:hover { color: var(--danger); }
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.section-head button { color: inherit; text-decoration: underline; }
+#sidebar-foot {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-faint);
+  font-size: 11.5px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.list-empty {
+  padding: 18px 12px;
+  color: var(--fg-faint);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------------ editor */
+#editor-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-panel);
+}
+#note-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+#note-title {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 650;
+}
+#note-title:hover { border-color: var(--border); }
+#note-title:focus { border-color: var(--accent); background: var(--bg); outline: none; }
+#note-meta { color: var(--fg-faint); font-size: 12px; white-space: nowrap; }
+body.focus-mode #note-head { border-bottom-color: transparent; }
+
+#find-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: var(--bg-sunken);
+  border-bottom: 1px solid var(--border);
+}
+#find-bar input[type="text"] {
+  height: 28px;
+  padding: 0 8px;
+  min-width: 140px;
+  flex: 1 1 160px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+#find-bar input.invalid { border-color: var(--danger); }
+#find-count {
+  min-width: 92px;
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.chip {
+  height: 26px;
+  min-width: 30px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--fg);
+}
+.find-group { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; }
+.find-actions { display: flex; align-items: center; gap: 6px; }
+.text-button {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+}
+.text-button:hover { background: var(--bg-hover); color: var(--fg); }
+
+#editor {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 16px 20px 40px;
+  background: var(--bg-panel);
+  color: var(--fg);
+  border: 0;
+  outline: none;
+  resize: none;
+  font-family: var(--editor-font);
+  font-size: var(--editor-size);
+  line-height: 1.55;
+  tab-size: 4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  overflow-y: auto;
+}
+#editor.nowrap {
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+#empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--fg-faint);
+}
+#empty-state h2 { margin: 0; font-size: 16px; color: var(--fg-muted); }
+
+/* --------------------------------------------------------------- statusbar */
+#statusbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 12px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-height: 26px;
+}
+body.status-hidden #statusbar, body.focus-mode #statusbar { display: none; }
+#statusbar .grow { flex: 1; }
+#save-state.is-dirty { color: var(--warn); }
+#save-state.is-error { color: var(--danger); }
+#storage-note { color: var(--warn); }
+
+/* ------------------------------------------------------- dialogs and toast */
+dialog {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--fg);
+  box-shadow: var(--shadow);
+  max-width: min(560px, 92vw);
+  max-height: 86vh;
+  overflow: hidden;
+}
+/* Keep the title and the buttons pinned; only the body scrolls. */
+dialog[open], dialog[open] > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+dialog[open] > form { flex: 1 1 auto; }
+.dialog-head, .dialog-foot { flex: 0 0 auto; }
+dialog::backdrop { background: rgba(10, 10, 16, 0.45); }
+.dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.dialog-head h2 { margin: 0; font-size: 15px; }
+.dialog-body { padding: 14px; overflow: auto; flex: 1 1 auto; min-height: 0; }
+/* A scrollable region is keyboard focusable in Chrome: draw its ring inside. */
+.dialog-body:focus-visible { outline-offset: -2px; }
+.dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
+#goto-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+#shortcut-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 18px;
+  margin: 0;
+}
+#shortcut-list dt {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  justify-self: start;
+  white-space: nowrap;
+}
+#shortcut-list dd { margin: 0; color: var(--fg-muted); }
+.about p { margin: 0 0 8px; color: var(--fg-muted); }
+#toast-stack {
+  position: fixed;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  z-index: 90;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: toast-in 140ms ease-out;
+}
+.toast button { color: var(--accent); font-weight: 600; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+#drop-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 91, 219, 0.14);
+  border: 3px dashed var(--accent);
+  color: var(--fg);
+  font-size: 18px;
+  font-weight: 600;
+  backdrop-filter: blur(1px);
+}
+
+/* ----------------------------------------------------------- small screens */
+@media (max-width: 720px) {
+  :root { --sidebar-width: min(84vw, 300px); }
+  #sidebar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 50;
+    box-shadow: var(--shadow);
+  }
+  body:not(.sidebar-hidden) #scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    background: rgba(10, 10, 16, 0.35);
+  }
+  #brand .brand-name { display: none; }
+  #note-meta { display: none; }
+}
+@media (max-width: 520px) {
+  .menu-button { padding: 5px 7px; }
+  #statusbar .optional { display: none; }
+}
+
+/* ------------------------------------------------------------------- print */
+#print-view { display: none; }
+@media print {
+  body { overflow: visible; background: #fff; color: #000; }
+  #app, #toast-stack, #drop-veil { display: none !important; }
+  #print-view {
+    display: block;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-mono);
+    font-size: 11pt;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    color: #000;
+  }
+  #print-view h1 {
+    font-family: var(--font-sans);
+    font-size: 15pt;
+    margin: 0 0 12pt;
+  }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div id="brand">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 3h11l4 4v14H5z"></path><path d="M9 8h6M9 12h6M9 16h4"></path>
+      </svg>
+      <span class="brand-name">Notepad</span>
+    </div>
+
+    <nav class="menubar" aria-label="Main menu">
+      <div class="menu-root">
+        <button class="menu-button" id="menu-file-button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-file">File</button>
+        <div class="menu" id="menu-file" role="menu" aria-labelledby="menu-file-button" hidden>
+          <button class="menu-item" role="menuitem" data-cmd="file.new">New note</button>
+          <button class="menu-item" role="menuitem" data-cmd="file.duplicate">Duplicate note</button>
+          <button class="menu-item" role="menuitem" data-cmd="file.open">Open text file…</button>
+          <hr>
+          <button class="menu-item" role="menuitem" data-cmd="file.save">Save now</button>
+          <button class="menu-item" role="menuitem" data-cmd="file.download.txt">Download as .txt</button>
+          <button class="menu-item" role="menuitem" data-cmd="file.download.md">Download as .md</button>
+          <button class="menu-item" role="menuitem" data-cmd="file.export.all">Export all notes…</button>
+          <hr>
+          <button class="menu-item" role="menuitem" data-cmd="file.print">Print…</button>
+          <button class="menu-item" role="menuitem" data-cmd="file.delete">Move note to trash</button>
+        </div>
+      </div>
+
+      <div class="menu-root">
+        <button class="menu-button" id="menu-edit-button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-edit">Edit</button>
+        <div class="menu" id="menu-edit" role="menu" aria-labelledby="menu-edit-button" hidden>
+          <button class="menu-item" role="menuitem" data-cmd="edit.find">Find…</button>
+          <button class="menu-item" role="menuitem" data-cmd="edit.findNext">Find next</button>
+          <button class="menu-item" role="menuitem" data-cmd="edit.findPrev">Find previous</button>
+          <button class="menu-item" role="menuitem" data-cmd="edit.replace">Replace…</button>
+          <hr>
+          <button class="menu-item" role="menuitem" data-cmd="edit.goto">Go to line…</button>
+          <button class="menu-item" role="menuitem" data-cmd="edit.selectAll">Select all</button>
+          <hr>
+          <button class="menu-item" role="menuitem" data-cmd="edit.insertDate">Insert date and time</button>
+          <button class="menu-item" role="menuitem" data-cmd="edit.copyAll">Copy whole note</button>
+          <button class="menu-item" role="menuitem" data-cmd="note.pin">Pin or unpin note</button>
+        </div>
+      </div>
+
+      <div class="menu-root">
+        <button class="menu-button" id="menu-view-button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-view">View</button>
+        <div class="menu" id="menu-view" role="menu" aria-labelledby="menu-view-button" hidden>
+          <button class="menu-item" role="menuitem" data-cmd="view.theme.cycle">Theme<span class="state" data-state="theme" aria-hidden="true"></span></button>
+          <button class="menu-item" role="menuitem" data-cmd="view.font.cycle">Editor font<span class="state" data-state="font" aria-hidden="true"></span></button>
+          <button class="menu-item" role="menuitem" data-cmd="view.wrap.toggle">Word wrap<span class="state" data-state="wrap" aria-hidden="true"></span></button>
+          <button class="menu-item" role="menuitem" data-cmd="view.spellcheck.toggle">Spell check<span class="state" data-state="spell" aria-hidden="true"></span></button>
+          <hr>
+          <button class="menu-item" role="menuitem" data-cmd="view.zoom.in">Zoom in</button>
+          <button class="menu-item" role="menuitem" data-cmd="view.zoom.out">Zoom out</button>
+          <button class="menu-item" role="menuitem" data-cmd="view.zoom.reset">Reset zoom</button>
+          <hr>
+          <button class="menu-item" role="menuitem" data-cmd="view.sidebar.toggle">Note list<span class="state" data-state="sidebar" aria-hidden="true"></span></button>
+          <button class="menu-item" role="menuitem" data-cmd="view.status.toggle">Status bar<span class="state" data-state="status" aria-hidden="true"></span></button>
+          <button class="menu-item" role="menuitem" data-cmd="view.focus.toggle">Focus mode<span class="state" data-state="focus" aria-hidden="true"></span></button>
+          <button class="menu-item" role="menuitem" data-cmd="trash.toggle">Trash<span class="state" data-state="trash" aria-hidden="true"></span></button>
+        </div>
+      </div>
+
+      <div class="menu-root">
+        <button class="menu-button" id="menu-help-button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-help">Help</button>
+        <div class="menu" id="menu-help" role="menu" aria-labelledby="menu-help-button" hidden>
+          <button class="menu-item" role="menuitem" data-cmd="help.shortcuts">Keyboard shortcuts</button>
+          <button class="menu-item" role="menuitem" data-cmd="help.about">About Notepad</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="spacer"></div>
+
+    <button class="icon-button" id="find-toggle" data-cmd="edit.find" title="Find and replace (Ctrl+F)" aria-label="Find and replace">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.2-4.2"></path>
+      </svg>
+    </button>
+    <button class="icon-button" id="theme-toggle" data-cmd="view.theme.cycle" title="Change theme" aria-label="Change theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.5"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"></path>
+      </svg>
+    </button>
+    <button class="icon-button primary" id="new-note" data-cmd="file.new" title="New note (Ctrl+N)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <path d="M12 5v14M5 12h14"></path>
+      </svg>
+      <span>New</span>
+    </button>
+  </header>
+
+  <div id="workspace">
+    <div id="scrim" data-cmd="view.sidebar.toggle" hidden></div>
+
+    <aside id="sidebar" aria-label="Notes">
+      <div id="sidebar-head">
+        <label class="sr-only" for="search">Search notes</label>
+        <input id="search" type="search" placeholder="Search notes" autocomplete="off" spellcheck="false">
+      </div>
+      <div id="sidebar-tools">
+        <span id="note-count">0 notes</span>
+        <label class="sr-only" for="sort-mode">Sort notes</label>
+        <select id="sort-mode">
+          <option value="updated">Last edited</option>
+          <option value="created">Date created</option>
+          <option value="title">Title</option>
+        </select>
+      </div>
+      <ul id="note-list"></ul>
+
+      <div id="trash-section" hidden>
+        <div class="section-head">
+          <span>Trash (<span id="trash-count">0</span>)</span>
+          <button type="button" data-cmd="trash.empty">Empty</button>
+        </div>
+        <ul id="trash-list"></ul>
+      </div>
+
+      <div id="sidebar-foot">
+        <span id="storage-usage">&nbsp;</span>
+        <button type="button" class="text-button" style="height:auto;padding:0 6px;" data-cmd="trash.toggle">Trash</button>
+      </div>
+    </aside>
+
+    <main id="editor-pane" aria-label="Editor">
+      <div id="note-head">
+        <label class="sr-only" for="note-title">Note title</label>
+        <input id="note-title" type="text" placeholder="Untitled" autocomplete="off" spellcheck="false">
+        <button class="icon-button" id="pin-toggle" data-cmd="note.pin" aria-pressed="false" title="Pin note" aria-label="Pin note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 4h6l-1 6 4 4H6l4-4-1-6z"></path><path d="M12 14v6"></path>
+          </svg>
+        </button>
+        <span id="note-meta"></span>
+      </div>
+
+      <div id="find-bar" role="search" aria-label="Find and replace" hidden>
+        <div class="find-group">
+          <label class="sr-only" for="find-input">Find</label>
+          <input id="find-input" type="text" placeholder="Find" autocomplete="off" spellcheck="false" aria-describedby="find-count">
+          <span id="find-count" aria-live="polite">No results</span>
+          <button type="button" class="chip" id="opt-case" aria-pressed="false" title="Match case">Aa</button>
+          <button type="button" class="chip" id="opt-word" aria-pressed="false" title="Whole word">W</button>
+          <button type="button" class="chip" id="opt-regex" aria-pressed="false" title="Regular expression">.*</button>
+          <button type="button" class="chip" id="find-prev" data-cmd="edit.findPrev" title="Previous match (Shift+Enter)" aria-label="Previous match">↑</button>
+          <button type="button" class="chip" id="find-next" data-cmd="edit.findNext" title="Next match (Enter)" aria-label="Next match">↓</button>
+        </div>
+        <div class="find-actions">
+          <label class="sr-only" for="replace-input">Replace with</label>
+          <input id="replace-input" type="text" placeholder="Replace with" autocomplete="off" spellcheck="false">
+          <button type="button" class="text-button" id="replace-one">Replace</button>
+          <button type="button" class="text-button" id="replace-all">All</button>
+          <button type="button" class="chip" id="find-close" title="Close (Esc)" aria-label="Close find bar">✕</button>
+        </div>
+      </div>
+
+      <textarea id="editor" aria-label="Note text" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Start typing…"></textarea>
+
+      <div id="empty-state" hidden>
+        <h2>No note selected</h2>
+        <button type="button" class="icon-button primary" data-cmd="file.new">Create a note</button>
+      </div>
+    </main>
+  </div>
+
+  <footer id="statusbar">
+    <span id="caret-pos">Ln 1, Col 1</span>
+    <span id="doc-stats" class="optional">0 words</span>
+    <span id="selection-stats" class="optional"></span>
+    <span class="grow"></span>
+    <span id="storage-note" hidden>Storage unavailable</span>
+    <span id="zoom-level" class="optional">16px</span>
+    <span id="save-state" role="status" aria-live="polite">Ready</span>
+  </footer>
+</div>
+
+<pre id="print-view" aria-hidden="true"></pre>
+<div id="toast-stack" role="status" aria-live="polite" aria-atomic="false"></div>
+<div id="drop-veil" hidden>Drop text files to import</div>
+<input type="file" id="file-input" accept=".txt,.md,.markdown,.text,.log,.csv,.json,text/plain" multiple hidden>
+
+<dialog id="dialog-goto" aria-labelledby="dialog-goto-title">
+  <form method="dialog" id="goto-form">
+    <div class="dialog-head"><h2 id="dialog-goto-title">Go to line</h2></div>
+    <div class="dialog-body">
+      <label class="sr-only" for="goto-input">Line number</label>
+      <input id="goto-input" type="number" min="1" step="1" value="1" required autofocus>
+      <p id="goto-hint" style="margin:8px 0 0;color:var(--fg-faint);font-size:12px;"></p>
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="text-button" data-close="dialog-goto">Cancel</button>
+      <button type="submit" class="icon-button primary">Go</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dialog-help" aria-labelledby="dialog-help-title">
+  <div class="dialog-head">
+    <h2 id="dialog-help-title">Keyboard shortcuts</h2>
+  </div>
+  <div class="dialog-body">
+    <dl id="shortcut-list"></dl>
+    <div class="about" id="about-block" hidden>
+      <hr style="border:0;border-top:1px solid var(--border);margin:14px 0;">
+      <p><strong>Notepad</strong> is a plain-text editor in a single HTML file. No server, no accounts, no tracking.</p>
+      <p>Notes are stored in this browser only, using local storage. Clearing site data removes them, so export anything you want to keep.</p>
+    </div>
+  </div>
+  <div class="dialog-foot">
+    <button type="button" class="text-button" data-close="dialog-help" autofocus>Close</button>
+  </div>
+</dialog>
+
+<script>
+'use strict';
+// ==== core:start ====
+/**
+ * Core: the pure logic of the notepad.
+ *
+ * Everything here is a plain function of its inputs. No browser APIs, no
+ * clocks, no randomness: the caller passes `now` and an `id()` factory. That is
+ * what makes the whole app unit-testable from Node without a headless browser
+ * (see tests/helpers/load-core.mjs).
+ */
+const NotepadCore = (function buildCore() {
+  const VERSION = 2;
+  const STORAGE_KEY = 'notepad.state.v2';
+  const TRASH_LIMIT = 25;
+  const MAX_MATCHES = 10000;
+  const MAX_REPLACEMENTS = 200000;
+  const MIN_FONT_SIZE = 10;
+  const MAX_FONT_SIZE = 32;
+  const TITLE_LIMIT = 60;
+  const WORDS_PER_MINUTE = 200;
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const RESERVED_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+  const DAY_MS = 86400000;
+
+  const WELCOME = [
+    'Welcome to Notepad',
+    '',
+    'A plain-text notepad in a single HTML file. Everything you type is saved',
+    'in this browser as you go, so you can close the tab and come back later.',
+    '',
+    'A few things worth knowing:',
+    '  Ctrl+N        start a new note',
+    '  Ctrl+F        find, Ctrl+H find and replace',
+    '  Ctrl+G        jump to a line number',
+    '  Ctrl+Shift+S  download this note as a text file',
+    '  Ctrl+/        show every shortcut',
+    '',
+    'Notes live on this device only - nothing is uploaded anywhere. Deleted',
+    'notes rest in the trash until you empty it, so nothing disappears by',
+    'accident.',
+    '',
+    'Delete this note whenever you are ready and start writing.',
+  ].join('\n');
+
+  /* ------------------------------------------------------------ primitives */
+
+  const isObject = (value) => !!value && typeof value === 'object' && !Array.isArray(value);
+  const str = (value) => (typeof value === 'string' ? value : '');
+  const num = (value, fallback) => (typeof value === 'number' && isFinite(value) ? value : fallback);
+  const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
+  const pad2 = (value) => String(value).padStart(2, '0');
+
+  function groupDigits(value) {
+    const sign = value < 0 ? '-' : '';
+    return sign + String(Math.abs(Math.round(value))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function plural(count, one, many) {
+    const word = Math.abs(count) === 1 ? one : many || one + 's';
+    return groupDigits(count) + ' ' + word;
+  }
+
+  function truncate(value, limit) {
+    const text = str(value);
+    return text.length > limit ? text.slice(0, limit - 1) + '…' : text;
+  }
+
+  function collate(a, b) {
+    return String(a == null ? '' : a).localeCompare(String(b == null ? '' : b), undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    });
+  }
+
+  /* ------------------------------------------------------- text statistics */
+
+  function countStats(text) {
+    const value = str(text);
+    const trimmed = value.trim();
+    const words = trimmed ? trimmed.split(/\s+/).length : 0;
+    return {
+      chars: value.length,
+      charsNoSpaces: value.replace(/\s+/g, '').length,
+      words,
+      lines: value.split('\n').length,
+      readingMinutes: words ? Math.ceil(words / WORDS_PER_MINUTE) : 0,
+    };
+  }
+
+  function lineColumnAt(text, index) {
+    const value = str(text);
+    const target = clamp(num(index, 0), 0, value.length);
+    let line = 1;
+    let lineStart = 0;
+    let at = value.indexOf('\n');
+    while (at !== -1 && at < target) {
+      line += 1;
+      lineStart = at + 1;
+      at = value.indexOf('\n', at + 1);
+    }
+    return { line, column: target - lineStart + 1 };
+  }
+
+  function offsetOfLine(text, line) {
+    const value = str(text);
+    const total = value.split('\n').length;
+    const target = clamp(Math.floor(num(line, 1)), 1, total);
+    let offset = 0;
+    for (let i = 1; i < target; i += 1) {
+      offset = value.indexOf('\n', offset) + 1;
+    }
+    return offset;
+  }
+
+  function spliceText(text, start, end, insert) {
+    const value = str(text);
+    const from = clamp(num(Math.min(start, end), 0), 0, value.length);
+    const to = clamp(num(Math.max(start, end), 0), 0, value.length);
+    const inserted = str(insert);
+    return { text: value.slice(0, from) + inserted + value.slice(to), cursor: from + inserted.length };
+  }
+
+  function changeIndent(text, start, end, options) {
+    const value = str(text);
+    const config = isObject(options) ? options : {};
+    const unit = typeof config.unit === 'string' && config.unit ? config.unit : '\t';
+    const outdent = !!config.outdent;
+    const from = clamp(num(Math.min(start, end), 0), 0, value.length);
+    const to = clamp(num(Math.max(start, end), 0), 0, value.length);
+
+    if (!outdent && from === to) {
+      const inserted = spliceText(value, from, to, unit);
+      return { text: inserted.text, start: inserted.cursor, end: inserted.cursor };
+    }
+
+    const blockStart = value.lastIndexOf('\n', from - 1) + 1;
+    let blockEnd = value.indexOf('\n', to);
+    if (blockEnd === -1) blockEnd = value.length;
+
+    const lines = value.slice(blockStart, blockEnd).split('\n');
+    const changed = lines.map((line) => {
+      if (!outdent) return unit + line;
+      if (line.startsWith('\t')) return line.slice(1);
+      let spaces = 0;
+      while (spaces < unit.length && line[spaces] === ' ') spaces += 1;
+      return line.slice(spaces);
+    });
+    const block = changed.join('\n');
+    return {
+      text: value.slice(0, blockStart) + block + value.slice(blockEnd),
+      start: blockStart,
+      end: blockStart + block.length,
+    };
+  }
+
+  function deriveTitle(body, fallback) {
+    const lines = str(body).split('\n');
+    for (const raw of lines) {
+      const line = raw.trim().replace(/^#{1,6}\s+/, '').trim();
+      if (line) return truncate(line, TITLE_LIMIT);
+    }
+    return fallback === undefined ? 'Untitled' : fallback;
+  }
+
+  function snippet(body, max) {
+    const value = str(body);
+    const limit = num(max, 90);
+    let cursor = 0;
+    while (cursor < value.length) {
+      const newline = value.indexOf('\n', cursor);
+      const line = newline === -1 ? value.slice(cursor) : value.slice(cursor, newline);
+      if (line.trim()) {
+        cursor = newline === -1 ? value.length : newline + 1;
+        break;
+      }
+      if (newline === -1) {
+        cursor = value.length;
+        break;
+      }
+      cursor = newline + 1;
+    }
+    const rest = value.slice(cursor).replace(/\s+/g, ' ').trim();
+    return rest.length > limit ? rest.slice(0, limit) + '…' : rest;
+  }
+
+  /* ------------------------------------------------------------ find logic */
+
+  function escapeRegExp(value) {
+    return str(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function searchOptions(options) {
+    const config = isObject(options) ? options : {};
+    return {
+      caseSensitive: !!config.caseSensitive,
+      wholeWord: !!config.wholeWord,
+      useRegex: !!config.useRegex,
+    };
+  }
+
+  function compile(source, flags) {
+    try {
+      return new RegExp(source, flags);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function buildMatcher(query, options) {
+    const needle = str(query);
+    if (!needle) return null;
+    const config = searchOptions(options);
+    const flags = config.caseSensitive ? 'g' : 'gi';
+    const source = config.useRegex ? needle : escapeRegExp(needle);
+    if (!config.wholeWord) return compile(source, flags);
+    // Prefer unicode-aware boundaries, fall back to \w for exotic patterns.
+    return (
+      compile('(?<![\\p{L}\\p{N}_])(?:' + source + ')(?![\\p{L}\\p{N}_])', flags + 'u') ||
+      compile('(?<!\\w)(?:' + source + ')(?!\\w)', flags)
+    );
+  }
+
+  function validateQuery(query, options) {
+    const needle = str(query);
+    if (!needle || !searchOptions(options).useRegex) return { ok: true };
+    try {
+      new RegExp(needle);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: String(error && error.message ? error.message : error) };
+    }
+  }
+
+  function findMatches(text, query, options) {
+    const value = str(text);
+    const matcher = buildMatcher(query, options);
+    if (!value || !matcher) return [];
+    const found = [];
+    let hit = matcher.exec(value);
+    while (hit) {
+      found.push({ start: hit.index, end: hit.index + hit[0].length });
+      if (hit[0].length === 0) matcher.lastIndex += 1;
+      if (found.length >= MAX_MATCHES || matcher.lastIndex > value.length) break;
+      hit = matcher.exec(value);
+    }
+    return found;
+  }
+
+  function pickMatch(matches, caret, options) {
+    const list = Array.isArray(matches) ? matches : [];
+    if (!list.length) return -1;
+    const config = isObject(options) ? options : {};
+    const wrap = config.wrap === undefined ? true : !!config.wrap;
+    const at = num(caret, 0);
+    if (config.direction === -1) {
+      for (let i = list.length - 1; i >= 0; i -= 1) {
+        if (list[i].end <= at) return i;
+      }
+      return wrap ? list.length - 1 : -1;
+    }
+    for (let i = 0; i < list.length; i += 1) {
+      if (list[i].start >= at) return i;
+    }
+    return wrap ? 0 : -1;
+  }
+
+  function replaceAll(text, query, replacement, options) {
+    const value = str(text);
+    const config = searchOptions(options);
+    const counter = buildMatcher(query, config);
+    if (!counter) return { text: value, count: 0 };
+
+    let count = 0;
+    let hit = counter.exec(value);
+    while (hit) {
+      count += 1;
+      if (hit[0].length === 0) counter.lastIndex += 1;
+      if (count >= MAX_REPLACEMENTS || counter.lastIndex > value.length) break;
+      hit = counter.exec(value);
+    }
+    if (!count) return { text: value, count: 0 };
+
+    const matcher = buildMatcher(query, config);
+    const patch = config.useRegex ? str(replacement) : str(replacement).replace(/\$/g, '$$$$');
+    return { text: value.replace(matcher, patch), count };
+  }
+
+  /* ----------------------------------------------------------------- notes */
+
+  function makeNote(input) {
+    const source = isObject(input) ? input : {};
+    const body = str(source.body);
+    const rawTitle = str(source.title).trim();
+    const renamed = typeof source.renamed === 'boolean' ? source.renamed : rawTitle !== '';
+    const createdAt = num(source.createdAt, num(source.now, 0));
+    return {
+      id: String(source.id == null ? '' : source.id),
+      title: renamed && rawTitle ? rawTitle : deriveTitle(body),
+      body,
+      createdAt,
+      updatedAt: num(source.updatedAt, createdAt),
+      pinned: !!source.pinned,
+      renamed: renamed && rawTitle !== '',
+    };
+  }
+
+  const COMPARATORS = {
+    updated: (a, b) => num(b.updatedAt, 0) - num(a.updatedAt, 0),
+    created: (a, b) => num(b.createdAt, 0) - num(a.createdAt, 0),
+    title: (a, b) => collate(a.title, b.title),
+  };
+
+  function sortNotes(notes, mode) {
+    const compare = COMPARATORS[mode] || COMPARATORS.updated;
+    return (Array.isArray(notes) ? notes.slice() : []).sort(
+      (a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || compare(a, b) || collate(a.title, b.title),
+    );
+  }
+
+  function filterNotes(notes, query) {
+    const list = Array.isArray(notes) ? notes.slice() : [];
+    const terms = str(query).toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return list;
+    return list.filter((note) => {
+      const haystack = (str(note.title) + '\n' + str(note.body)).toLowerCase();
+      return terms.every((term) => haystack.includes(term));
+    });
+  }
+
+  /* -------------------------------------------------------------- settings */
+
+  const SETTINGS_SCHEMA = {
+    theme: { values: ['system', 'light', 'dark'], fallback: 'system' },
+    fontFamily: { values: ['mono', 'sans', 'serif'], fallback: 'mono' },
+    fontSize: { size: true, fallback: 16 },
+    wordWrap: { bool: true, fallback: true },
+    spellcheck: { bool: true, fallback: false },
+    showStatus: { bool: true, fallback: true },
+    sidebarOpen: { bool: true, fallback: true },
+    showTrash: { bool: true, fallback: false },
+    sortMode: { values: ['updated', 'created', 'title'], fallback: 'updated' },
+  };
+
+  const DEFAULT_SETTINGS = Object.freeze(
+    Object.keys(SETTINGS_SCHEMA).reduce((acc, key) => {
+      acc[key] = SETTINGS_SCHEMA[key].fallback;
+      return acc;
+    }, {}),
+  );
+
+  function clampFontSize(value) {
+    const parsed = typeof value === 'number' ? value : parseFloat(value);
+    if (!isFinite(parsed)) return SETTINGS_SCHEMA.fontSize.fallback;
+    return clamp(Math.round(parsed), MIN_FONT_SIZE, MAX_FONT_SIZE);
+  }
+
+  function normalizeSetting(key, value) {
+    const rule = SETTINGS_SCHEMA[key];
+    if (!rule) return undefined;
+    if (rule.size) return clampFontSize(value);
+    if (rule.bool) return typeof value === 'boolean' ? value : rule.fallback;
+    return rule.values.indexOf(value) === -1 ? rule.fallback : value;
+  }
+
+  function normalizeSettings(input) {
+    const source = isObject(input) ? input : {};
+    const settings = {};
+    for (const key of Object.keys(SETTINGS_SCHEMA)) {
+      settings[key] = key in source ? normalizeSetting(key, source[key]) : DEFAULT_SETTINGS[key];
+    }
+    return settings;
+  }
+
+  function resolveTheme(setting, prefersDark) {
+    if (setting === 'light' || setting === 'dark') return setting;
+    return prefersDark ? 'dark' : 'light';
+  }
+
+  /* ----------------------------------------------------------------- state */
+
+  function context(input) {
+    const source = isObject(input) ? input : {};
+    let counter = 0;
+    const id = typeof source.id === 'function' ? source.id : () => 'note-' + ++counter;
+    return { now: num(source.now, 0), id };
+  }
+
+  function defaultState(ctx) {
+    const { now, id } = context(ctx);
+    const welcome = makeNote({ id: id(), now, body: WELCOME });
+    return {
+      version: VERSION,
+      notes: [welcome],
+      trash: [],
+      activeId: welcome.id,
+      settings: normalizeSettings(null),
+    };
+  }
+
+  function indexOfNote(list, id) {
+    return (Array.isArray(list) ? list : []).findIndex((note) => note && note.id === id);
+  }
+
+  function withNotes(state, notes, extra) {
+    return Object.assign({}, state, { notes }, extra || {});
+  }
+
+  /** Which note should be selected after the one at `index` disappears. */
+  function neighbourId(notes, index) {
+    const next = notes[index] || notes[index - 1];
+    return next ? next.id : null;
+  }
+
+  const HANDLERS = {
+    'note/new': (state, action) => {
+      const note = makeNote({ id: action.id, now: action.now, body: action.body, title: action.title });
+      return withNotes(state, [note].concat(state.notes), { activeId: note.id });
+    },
+
+    'note/select': (state, action) => {
+      if (indexOfNote(state.notes, action.id) === -1 || state.activeId === action.id) return state;
+      return Object.assign({}, state, { activeId: action.id });
+    },
+
+    'note/edit': (state, action) => {
+      const index = indexOfNote(state.notes, action.id);
+      if (index === -1) return state;
+      const note = state.notes[index];
+      const body = str(action.body);
+      if (note.body === body) return state;
+      const notes = state.notes.slice();
+      notes[index] = Object.assign({}, note, {
+        body,
+        title: note.renamed ? note.title : deriveTitle(body),
+        updatedAt: num(action.now, note.updatedAt),
+      });
+      return withNotes(state, notes);
+    },
+
+    'note/rename': (state, action) => {
+      const index = indexOfNote(state.notes, action.id);
+      if (index === -1) return state;
+      const note = state.notes[index];
+      const title = str(action.title).trim();
+      const notes = state.notes.slice();
+      notes[index] = Object.assign({}, note, {
+        title: title || deriveTitle(note.body),
+        renamed: title !== '',
+        updatedAt: num(action.now, note.updatedAt),
+      });
+      return withNotes(state, notes);
+    },
+
+    'note/delete': (state, action) => {
+      const index = indexOfNote(state.notes, action.id);
+      if (index === -1) return state;
+      const removed = Object.assign({}, state.notes[index], { deletedAt: num(action.now, 0) });
+      const notes = state.notes.slice();
+      notes.splice(index, 1);
+      return withNotes(state, notes, {
+        trash: [removed].concat(state.trash).slice(0, TRASH_LIMIT),
+        activeId: state.activeId === action.id ? neighbourId(notes, index) : state.activeId,
+      });
+    },
+
+    'note/restore': (state, action) => {
+      const index = indexOfNote(state.trash, action.id);
+      if (index === -1) return state;
+      const restored = Object.assign({}, state.trash[index]);
+      delete restored.deletedAt;
+      const trash = state.trash.slice();
+      trash.splice(index, 1);
+      return withNotes(state, [restored].concat(state.notes), { trash, activeId: restored.id });
+    },
+
+    'note/purge': (state, action) => {
+      const index = indexOfNote(state.trash, action.id);
+      if (index === -1) return state;
+      const trash = state.trash.slice();
+      trash.splice(index, 1);
+      return Object.assign({}, state, { trash });
+    },
+
+    'trash/empty': (state) => (state.trash.length ? Object.assign({}, state, { trash: [] }) : state),
+
+    'note/duplicate': (state, action) => {
+      const index = indexOfNote(state.notes, action.id);
+      if (index === -1) return state;
+      const source = state.notes[index];
+      const copy = makeNote({
+        id: action.newId,
+        now: action.now,
+        title: source.title + ' (copy)',
+        body: source.body,
+        pinned: source.pinned,
+      });
+      return withNotes(state, [copy].concat(state.notes), { activeId: copy.id });
+    },
+
+    'note/pin': (state, action) => {
+      const index = indexOfNote(state.notes, action.id);
+      if (index === -1) return state;
+      const notes = state.notes.slice();
+      notes[index] = Object.assign({}, notes[index], { pinned: !notes[index].pinned });
+      return withNotes(state, notes);
+    },
+
+    'settings/set': (state, action) => {
+      if (!(action.key in SETTINGS_SCHEMA)) return state;
+      const value = normalizeSetting(action.key, action.value);
+      if (state.settings[action.key] === value) return state;
+      return Object.assign({}, state, {
+        settings: Object.assign({}, state.settings, { [action.key]: value }),
+      });
+    },
+  };
+
+  function reduce(state, action) {
+    if (!isObject(action) || !HANDLERS[action.type]) return state;
+    return HANDLERS[action.type](state, action);
+  }
+
+  /* ----------------------------------------------------------- persistence */
+
+  function normalizeNote(raw, ctx, seen) {
+    const createdAt = num(raw.createdAt, ctx.now);
+    let id = typeof raw.id === 'string' && raw.id && !seen.has(raw.id) ? raw.id : ctx.id();
+    while (seen.has(id)) id = ctx.id();
+    seen.add(id);
+    return makeNote({
+      id,
+      now: ctx.now,
+      title: str(raw.title),
+      body: str(raw.body),
+      pinned: !!raw.pinned,
+      renamed: typeof raw.renamed === 'boolean' ? raw.renamed : str(raw.title).trim() !== '',
+      createdAt,
+      updatedAt: num(raw.updatedAt, createdAt),
+    });
+  }
+
+  function migrateV1(data, ctx) {
+    const note = makeNote({ id: ctx.id(), now: ctx.now, body: str(data.text) });
+    return {
+      version: VERSION,
+      notes: [note],
+      trash: [],
+      activeId: note.id,
+      settings: normalizeSettings(data.settings),
+    };
+  }
+
+  function serialize(state) {
+    return JSON.stringify({
+      version: VERSION,
+      notes: state.notes,
+      trash: state.trash,
+      activeId: state.activeId,
+      settings: state.settings,
+    });
+  }
+
+  function deserialize(raw, ctxInput) {
+    const ctx = context(ctxInput);
+    let data = raw;
+    if (typeof raw === 'string') {
+      try {
+        data = JSON.parse(raw);
+      } catch (error) {
+        data = null;
+      }
+    }
+    if (!isObject(data)) return defaultState(ctx);
+    if (num(Number(data.version), 0) === 1 || (!Array.isArray(data.notes) && typeof data.text === 'string')) {
+      return migrateV1(data, ctx);
+    }
+    if (!Array.isArray(data.notes)) return defaultState(ctx);
+
+    const seen = new Set();
+    const notes = data.notes.filter(isObject).map((raw2) => normalizeNote(raw2, ctx, seen));
+    const trash = (Array.isArray(data.trash) ? data.trash : [])
+      .filter(isObject)
+      .map((raw2) => {
+        const note = normalizeNote(raw2, ctx, seen);
+        note.deletedAt = num(raw2.deletedAt, note.updatedAt);
+        return note;
+      })
+      .slice(0, TRASH_LIMIT);
+    const activeId =
+      typeof data.activeId === 'string' && indexOfNote(notes, data.activeId) !== -1
+        ? data.activeId
+        : notes.length
+          ? notes[0].id
+          : null;
+    return { version: VERSION, notes, trash, activeId, settings: normalizeSettings(data.settings) };
+  }
+
+  /* ------------------------------------------------------- files and dates */
+
+  function filenameFor(input, ext) {
+    const title = isObject(input) ? str(input.title) : str(input);
+    let base = title
+      .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]+/g, '-')
+      .replace(/\s+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^[-.\s]+|[-.\s]+$/g, '');
+    if (base.length > TITLE_LIMIT) base = base.slice(0, TITLE_LIMIT).replace(/-+$/, '');
+    if (!base) base = 'untitled';
+    if (RESERVED_NAMES.test(base)) base = '_' + base;
+    let extension = str(ext).replace(/^\./, '').toLowerCase() || 'txt';
+    if (!/^[a-z0-9]{1,8}$/.test(extension)) extension = 'txt';
+    return base + '.' + extension;
+  }
+
+  function titleFromFilename(name) {
+    const base = str(name).split(/[\\/]/).pop();
+    if (!base) return 'Untitled';
+    const dot = base.lastIndexOf('.');
+    const title = (dot > 0 ? base.slice(0, dot) : base).trim();
+    return title || 'Untitled';
+  }
+
+  function formatStamp(ms) {
+    const when = new Date(num(ms, NaN));
+    if (isNaN(when.getTime())) return '';
+    return (
+      when.getFullYear() +
+      '-' +
+      pad2(when.getMonth() + 1) +
+      '-' +
+      pad2(when.getDate()) +
+      ' ' +
+      pad2(when.getHours()) +
+      ':' +
+      pad2(when.getMinutes())
+    );
+  }
+
+  function startOfDay(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  }
+
+  function relativeTime(ms, nowMs) {
+    const then = new Date(num(ms, NaN));
+    const now = new Date(num(nowMs, NaN));
+    if (isNaN(then.getTime()) || isNaN(now.getTime())) return '';
+    const diff = now.getTime() - then.getTime();
+    if (diff < 45000) return 'just now';
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return minutes + 'm ago';
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return hours + 'h ago';
+    const days = Math.round((startOfDay(now) - startOfDay(then)) / DAY_MS);
+    if (days <= 1) return 'yesterday';
+    if (days < 7) return days + 'd ago';
+    const stamp = MONTHS[then.getMonth()] + ' ' + then.getDate();
+    return then.getFullYear() === now.getFullYear() ? stamp : stamp + ', ' + then.getFullYear();
+  }
+
+  function formatBytes(bytes) {
+    const value = num(bytes, 0);
+    if (value < 1024) return Math.round(value) + ' B';
+    if (value < 1024 * 1024) return (value / 1024).toFixed(1) + ' KB';
+    return (value / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  return Object.freeze({
+    VERSION,
+    STORAGE_KEY,
+    TRASH_LIMIT,
+    MAX_MATCHES,
+    MIN_FONT_SIZE,
+    MAX_FONT_SIZE,
+    DEFAULT_SETTINGS,
+    countStats,
+    lineColumnAt,
+    offsetOfLine,
+    spliceText,
+    changeIndent,
+    deriveTitle,
+    snippet,
+    escapeRegExp,
+    validateQuery,
+    findMatches,
+    pickMatch,
+    replaceAll,
+    makeNote,
+    sortNotes,
+    filterNotes,
+    normalizeSettings,
+    clampFontSize,
+    resolveTheme,
+    defaultState,
+    reduce,
+    serialize,
+    deserialize,
+    filenameFor,
+    titleFromFilename,
+    formatStamp,
+    relativeTime,
+    formatBytes,
+    plural,
+  });
+})();
+globalThis.NotepadCore = NotepadCore;
+// ==== core:end ====
+
+// ==== view:start ====
+/**
+ * View: everything that touches the browser.
+ *
+ * Responsibilities, in order: read/write local storage, translate input into
+ * core actions, and paint `state` into the existing markup. It owns no logic
+ * that could live in core -- when something here starts to feel like a rule
+ * rather than a wire, it belongs in the core region above with a unit test.
+ */
+(function startApp() {
+  const Core = NotepadCore;
+  const el = {
+    editor: document.getElementById('editor'),
+    title: document.getElementById('note-title'),
+    meta: document.getElementById('note-meta'),
+    pin: document.getElementById('pin-toggle'),
+    list: document.getElementById('note-list'),
+    trashSection: document.getElementById('trash-section'),
+    trashList: document.getElementById('trash-list'),
+    trashCount: document.getElementById('trash-count'),
+    noteCount: document.getElementById('note-count'),
+    search: document.getElementById('search'),
+    sort: document.getElementById('sort-mode'),
+    caret: document.getElementById('caret-pos'),
+    stats: document.getElementById('doc-stats'),
+    selectionStats: document.getElementById('selection-stats'),
+    saveState: document.getElementById('save-state'),
+    zoom: document.getElementById('zoom-level'),
+    storageUsage: document.getElementById('storage-usage'),
+    storageNote: document.getElementById('storage-note'),
+    findBar: document.getElementById('find-bar'),
+    findInput: document.getElementById('find-input'),
+    findCount: document.getElementById('find-count'),
+    replaceInput: document.getElementById('replace-input'),
+    optCase: document.getElementById('opt-case'),
+    optWord: document.getElementById('opt-word'),
+    optRegex: document.getElementById('opt-regex'),
+    empty: document.getElementById('empty-state'),
+    toasts: document.getElementById('toast-stack'),
+    fileInput: document.getElementById('file-input'),
+    dropVeil: document.getElementById('drop-veil'),
+    printView: document.getElementById('print-view'),
+    gotoDialog: document.getElementById('dialog-goto'),
+    gotoForm: document.getElementById('goto-form'),
+    gotoInput: document.getElementById('goto-input'),
+    gotoHint: document.getElementById('goto-hint'),
+    helpDialog: document.getElementById('dialog-help'),
+    shortcutList: document.getElementById('shortcut-list'),
+    aboutBlock: document.getElementById('about-block'),
+    scrim: document.getElementById('scrim'),
+  };
+
+  const SAVE_DELAY = 350;
+  const NARROW = globalThis.matchMedia ? globalThis.matchMedia('(max-width: 720px)') : null;
+  const THEME_ORDER = ['system', 'light', 'dark'];
+  const FONT_ORDER = ['mono', 'sans', 'serif'];
+  const FONT_LABEL = { mono: 'Monospace', sans: 'Sans serif', serif: 'Serif' };
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+
+  /* --------------------------------------------------------------- storage */
+
+  const storage = (function pickStorage() {
+    const probe = '__notepad_probe__';
+    try {
+      localStorage.setItem(probe, '1');
+      localStorage.removeItem(probe);
+      return { ok: true, read: (k) => localStorage.getItem(k), write: (k, v) => localStorage.setItem(k, v) };
+    } catch (error) {
+      const memory = new Map();
+      return {
+        ok: false,
+        read: (k) => (memory.has(k) ? memory.get(k) : null),
+        write: (k, v) => memory.set(k, v),
+      };
+    }
+  })();
+
+  const newId = () => {
+    if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') return globalThis.crypto.randomUUID();
+    return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  };
+  const now = () => Date.now();
+  const ctx = () => ({ now: now(), id: newId });
+
+  let state = Core.deserialize(readStored(), ctx());
+  let saveTimer = 0;
+  let dirty = false;
+  let lastSavedRaw = '';
+  let renderedNoteId = null;
+  let drawerOpen = false; // narrow screens only: the sidebar is an overlay there
+  const find = { query: '', caseSensitive: false, wholeWord: false, useRegex: false, matches: [], index: -1 };
+
+  function readStored() {
+    try {
+      return storage.read(Core.STORAGE_KEY);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function persistNow() {
+    clearTimeout(saveTimer);
+    saveTimer = 0;
+    const raw = Core.serialize(state);
+    if (raw === lastSavedRaw) {
+      dirty = false;
+      paintSaveState('saved');
+      return;
+    }
+    try {
+      storage.write(Core.STORAGE_KEY, raw);
+      lastSavedRaw = raw;
+      dirty = false;
+      paintSaveState('saved');
+      paintStorageUsage(raw.length);
+    } catch (error) {
+      paintSaveState('error');
+      toast('Could not save: storage is full. Export this note to keep it.');
+    }
+  }
+
+  function schedulePersist() {
+    dirty = true;
+    paintSaveState('dirty');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persistNow, SAVE_DELAY);
+  }
+
+  /* ----------------------------------------------------------- state plumbing */
+
+  function dispatch(action) {
+    const next = Core.reduce(state, action);
+    if (next === state) return false;
+    state = next;
+    render();
+    schedulePersist();
+    return true;
+  }
+
+  const settings = () => state.settings;
+  const activeNote = () => state.notes.find((note) => note.id === state.activeId) || null;
+  const setSetting = (key, value) => dispatch({ type: 'settings/set', key, value });
+  const isNarrow = () => !!(NARROW && NARROW.matches);
+  const sidebarVisible = () => (isNarrow() ? drawerOpen : settings().sidebarOpen);
+
+  function toggleSidebar(force) {
+    const next = force === undefined ? !sidebarVisible() : !!force;
+    if (isNarrow()) {
+      drawerOpen = next;
+      applyChrome();
+    } else {
+      setSetting('sidebarOpen', next);
+    }
+  }
+
+  /* ------------------------------------------------------------- rendering */
+
+  function render() {
+    applyChrome();
+    renderList();
+    renderTrash();
+    renderEditor();
+    renderStatus();
+    renderMenuState();
+  }
+
+  function applyChrome() {
+    const s = settings();
+    const prefersDark = globalThis.matchMedia
+      ? globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+      : false;
+    document.documentElement.dataset.theme = Core.resolveTheme(s.theme, prefersDark);
+    document.documentElement.style.setProperty('--editor-font', 'var(--font-' + s.fontFamily + ')');
+    document.documentElement.style.setProperty('--editor-size', s.fontSize + 'px');
+    document.body.classList.toggle('sidebar-hidden', !sidebarVisible());
+    document.body.classList.toggle('status-hidden', !s.showStatus);
+    el.editor.classList.toggle('nowrap', !s.wordWrap);
+    el.editor.spellcheck = s.spellcheck;
+    el.editor.wrap = s.wordWrap ? 'soft' : 'off';
+    el.sort.value = s.sortMode;
+    el.scrim.hidden = !(isNarrow() && drawerOpen);
+    el.trashSection.hidden = !s.showTrash;
+    el.storageNote.hidden = storage.ok;
+  }
+
+  function renderList() {
+    const visible = Core.sortNotes(Core.filterNotes(state.notes, el.search.value), settings().sortMode);
+    el.noteCount.textContent = Core.plural(state.notes.length, 'note');
+    el.list.replaceChildren();
+
+    if (!visible.length) {
+      const li = document.createElement('li');
+      li.className = 'list-empty';
+      li.textContent = state.notes.length ? 'No notes match your search.' : 'No notes yet.';
+      el.list.append(li);
+      return;
+    }
+
+    const stamp = now();
+    for (const note of visible) {
+      const li = document.createElement('li');
+      li.className = 'note-row' + (note.id === state.activeId ? ' is-active' : '');
+
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'note-open';
+      open.dataset.action = 'select';
+      open.dataset.id = note.id;
+      open.setAttribute('aria-current', note.id === state.activeId ? 'true' : 'false');
+
+      const title = document.createElement('span');
+      title.className = 'title';
+      const titleText = document.createElement('span');
+      titleText.className = 'label';
+      titleText.textContent = note.title || 'Untitled';
+      title.append(titleText);
+      if (note.pinned) {
+        const mark = document.createElement('span');
+        mark.className = 'pin-mark';
+        mark.textContent = '★';
+        mark.setAttribute('aria-hidden', 'true');
+        title.prepend(mark);
+        open.title = 'Pinned note';
+      }
+
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      const when = document.createElement('span');
+      when.textContent = Core.relativeTime(note.updatedAt, stamp);
+      const preview = document.createElement('span');
+      preview.className = 'preview';
+      preview.textContent = Core.snippet(note.body, 60);
+      meta.append(when, preview);
+
+      open.append(title, meta);
+
+      const pin = iconButton(note.pinned ? 'Unpin note' : 'Pin note', 'pin', note.id, note.pinned ? '★' : '☆');
+      if (note.pinned) pin.classList.add('is-on');
+      const remove = iconButton('Move to trash', 'delete', note.id, '✕');
+      remove.classList.add('danger');
+
+      li.append(open, pin, remove);
+      el.list.append(li);
+    }
+  }
+
+  function iconButton(label, action, id, glyph) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'row-action';
+    button.dataset.action = action;
+    button.dataset.id = id;
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    button.textContent = glyph;
+    return button;
+  }
+
+  function renderTrash() {
+    el.trashCount.textContent = String(state.trash.length);
+    el.trashList.replaceChildren();
+    if (!state.trash.length) {
+      const li = document.createElement('li');
+      li.className = 'list-empty';
+      li.textContent = 'Trash is empty.';
+      el.trashList.append(li);
+      return;
+    }
+    const stamp = now();
+    for (const note of state.trash) {
+      const li = document.createElement('li');
+      li.className = 'note-row';
+      const label = document.createElement('button');
+      label.type = 'button';
+      label.className = 'note-open';
+      label.dataset.action = 'restore';
+      label.dataset.id = note.id;
+      const title = document.createElement('span');
+      title.className = 'title';
+      title.textContent = note.title || 'Untitled';
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = 'deleted ' + Core.relativeTime(note.deletedAt, stamp) + ' · click to restore';
+      label.append(title, meta);
+      const purge = iconButton('Delete for good', 'purge', note.id, '✕');
+      purge.classList.add('danger');
+      li.append(label, purge);
+      el.trashList.append(li);
+    }
+  }
+
+  function renderEditor() {
+    const note = activeNote();
+    el.empty.hidden = !!note;
+    el.editor.hidden = !note;
+    el.findBar.hidden = el.findBar.hidden || !note;
+    document.getElementById('note-head').hidden = !note;
+
+    if (!note) {
+      renderedNoteId = null;
+      el.printView.textContent = '';
+      return;
+    }
+    if (el.editor.value !== note.body) {
+      const switching = renderedNoteId !== note.id;
+      const caret = el.editor.selectionStart;
+      el.editor.value = note.body;
+      if (!switching) el.editor.setSelectionRange(caret, caret);
+      else el.editor.setSelectionRange(0, 0);
+    }
+    if (document.activeElement !== el.title && el.title.value !== note.title) el.title.value = note.title;
+    el.title.placeholder = Core.deriveTitle(note.body);
+    el.pin.setAttribute('aria-pressed', note.pinned ? 'true' : 'false');
+    el.pin.title = note.pinned ? 'Unpin note' : 'Pin note';
+    el.meta.textContent = 'edited ' + Core.relativeTime(note.updatedAt, now());
+    renderedNoteId = note.id;
+  }
+
+  function renderStatus() {
+    const note = activeNote();
+    const text = note ? note.body : '';
+    const stats = Core.countStats(text);
+    const at = Core.lineColumnAt(text, el.editor.selectionStart || 0);
+    el.caret.textContent = 'Ln ' + at.line + ', Col ' + at.column;
+    el.stats.textContent =
+      Core.plural(stats.words, 'word') +
+      ' · ' +
+      Core.plural(stats.chars, 'char') +
+      ' · ' +
+      Core.plural(stats.lines, 'line') +
+      (stats.readingMinutes ? ' · ' + stats.readingMinutes + ' min read' : '');
+    const selected = Math.abs(el.editor.selectionEnd - el.editor.selectionStart);
+    el.selectionStats.textContent = selected ? Core.plural(selected, 'char') + ' selected' : '';
+    el.zoom.textContent = settings().fontSize + 'px';
+  }
+
+  function paintSaveState(mode) {
+    el.saveState.classList.toggle('is-dirty', mode === 'dirty');
+    el.saveState.classList.toggle('is-error', mode === 'error');
+    if (mode === 'dirty') el.saveState.textContent = 'Saving…';
+    else if (mode === 'error') el.saveState.textContent = 'Not saved';
+    else el.saveState.textContent = 'Saved ' + Core.formatStamp(now()).slice(11);
+  }
+
+  function paintStorageUsage(bytes) {
+    el.storageUsage.textContent = Core.formatBytes(bytes) + ' stored';
+  }
+
+  function renderMenuState() {
+    const s = settings();
+    const marks = {
+      theme: s.theme === 'system' ? 'Auto' : s.theme === 'dark' ? 'Dark' : 'Light',
+      font: FONT_LABEL[s.fontFamily],
+      wrap: s.wordWrap ? '✓' : '',
+      spell: s.spellcheck ? '✓' : '',
+      sidebar: sidebarVisible() ? '✓' : '',
+      status: s.showStatus ? '✓' : '',
+      focus: document.body.classList.contains('focus-mode') ? '✓' : '',
+      trash: s.showTrash ? '✓' : '',
+    };
+    for (const node of document.querySelectorAll('[data-state]')) {
+      node.textContent = marks[node.dataset.state] || '';
+    }
+  }
+
+  /* ------------------------------------------------------------- utilities */
+
+  function toast(message, actionLabel, onAction) {
+    const box = document.createElement('div');
+    box.className = 'toast';
+    const text = document.createElement('span');
+    text.textContent = message;
+    box.append(text);
+    let timer = 0;
+    const close = () => {
+      clearTimeout(timer);
+      box.remove();
+    };
+    if (actionLabel && onAction) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = actionLabel;
+      button.addEventListener('click', () => {
+        close();
+        onAction();
+      });
+      box.append(button);
+    }
+    el.toasts.append(box);
+    timer = setTimeout(close, actionLabel ? 7000 : 2600);
+    return close;
+  }
+
+  /** Replace the editor text through the reducer, keeping the caret sane. */
+  function setBody(body, selectionStart, selectionEnd) {
+    const note = activeNote();
+    if (!note) return;
+    el.editor.value = body;
+    if (selectionStart != null) {
+      el.editor.setSelectionRange(selectionStart, selectionEnd == null ? selectionStart : selectionEnd);
+    }
+    dispatch({ type: 'note/edit', id: note.id, body, now: now() });
+    refreshMatches();
+  }
+
+  function focusEditor() {
+    if (!el.editor.hidden) el.editor.focus();
+  }
+
+  function scrollCaretIntoView() {
+    const note = activeNote();
+    if (!note) return;
+    const at = Core.lineColumnAt(note.body, el.editor.selectionStart);
+    const lineHeight = parseFloat(getComputedStyle(el.editor).lineHeight) || settings().fontSize * 1.55;
+    const target = (at.line - 1) * lineHeight - el.editor.clientHeight / 2;
+    el.editor.scrollTop = Math.max(0, target);
+  }
+
+  function selectRange(range) {
+    focusEditor();
+    el.editor.setSelectionRange(range.start, range.end);
+    scrollCaretIntoView();
+    renderStatus();
+  }
+
+  function download(filename, text) {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.rel = 'noopener';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast('Downloaded ' + filename);
+  }
+
+  /* ------------------------------------------------------------ find logic */
+
+  function findOptions() {
+    return { caseSensitive: find.caseSensitive, wholeWord: find.wholeWord, useRegex: find.useRegex };
+  }
+
+  function refreshMatches() {
+    const note = activeNote();
+    find.query = el.findInput.value;
+    const check = Core.validateQuery(find.query, findOptions());
+    el.findInput.classList.toggle('invalid', !check.ok);
+    find.matches = note && check.ok ? Core.findMatches(note.body, find.query, findOptions()) : [];
+    if (find.index >= find.matches.length) find.index = -1;
+    paintFindCount(check);
+  }
+
+  function paintFindCount(check) {
+    if (check && !check.ok) {
+      el.findCount.textContent = 'Bad pattern';
+      return;
+    }
+    if (!find.query) {
+      el.findCount.textContent = 'No results';
+      return;
+    }
+    if (!find.matches.length) {
+      el.findCount.textContent = 'No results';
+      return;
+    }
+    const position = find.index >= 0 ? find.index + 1 : 0;
+    const total = find.matches.length + (find.matches.length >= Core.MAX_MATCHES ? '+' : '');
+    el.findCount.textContent = position ? position + ' of ' + total : total + ' results';
+  }
+
+  function gotoMatch(direction) {
+    openFind(false);
+    refreshMatches();
+    if (!find.matches.length) {
+      paintFindCount();
+      return;
+    }
+    const caret = direction === -1 ? el.editor.selectionStart : el.editor.selectionEnd;
+    const index = Core.pickMatch(find.matches, caret, { direction });
+    if (index === -1) return;
+    find.index = index;
+    selectRange(find.matches[index]);
+    paintFindCount();
+  }
+
+  function replaceCurrent() {
+    const note = activeNote();
+    if (!note || !find.query) return;
+    refreshMatches();
+    if (!find.matches.length) {
+      paintFindCount();
+      return;
+    }
+    const start = el.editor.selectionStart;
+    const end = el.editor.selectionEnd;
+    const hit = find.matches.findIndex((m) => m.start === start && m.end === end);
+    if (hit === -1) {
+      gotoMatch(1);
+      return;
+    }
+    const match = find.matches[hit];
+    const slice = note.body.slice(match.start, match.end);
+    const replacement = Core.replaceAll(slice, find.query, el.replaceInput.value, findOptions()).text;
+    const patched = Core.spliceText(note.body, match.start, match.end, replacement);
+    setBody(patched.text, patched.cursor);
+    gotoMatch(1);
+  }
+
+  function replaceEverything() {
+    const note = activeNote();
+    if (!note || !find.query) return;
+    const result = Core.replaceAll(note.body, find.query, el.replaceInput.value, findOptions());
+    if (!result.count) {
+      toast('Nothing to replace');
+      return;
+    }
+    setBody(result.text, Math.min(el.editor.selectionStart, result.text.length));
+    toast('Replaced ' + Core.plural(result.count, 'match', 'matches'));
+  }
+
+  function openFind(focusInput) {
+    el.findBar.hidden = false;
+    if (focusInput !== false) {
+      el.findInput.focus();
+      el.findInput.select();
+    }
+  }
+
+  function closeFind() {
+    el.findBar.hidden = true;
+    find.index = -1;
+    focusEditor();
+  }
+
+  /* ---------------------------------------------------------- file helpers */
+
+  function importFiles(fileList) {
+    const files = Array.from(fileList || []).filter((file) => file.size <= 4 * 1024 * 1024);
+    if (!files.length) {
+      toast('Nothing to import: text files up to 4 MB, please');
+      return;
+    }
+    let pending = files.length;
+    let imported = 0;
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        const body = String(reader.result == null ? '' : reader.result).replace(/\r\n?/g, '\n');
+        dispatch({
+          type: 'note/new',
+          id: newId(),
+          now: now(),
+          body,
+          title: Core.titleFromFilename(file.name),
+        });
+        imported += 1;
+        if (--pending === 0) {
+          toast('Imported ' + Core.plural(imported, 'file'));
+          focusEditor();
+        }
+      });
+      reader.addEventListener('error', () => {
+        if (--pending === 0) toast('Imported ' + Core.plural(imported, 'file'));
+      });
+      reader.readAsText(file);
+    }
+  }
+
+  function exportAll() {
+    if (!state.notes.length) {
+      toast('There is nothing to export');
+      return;
+    }
+    const stamp = Core.formatStamp(now()).replace(/[: ]/g, '-');
+    const parts = Core.sortNotes(state.notes, settings().sortMode).map(
+      (note) => '# ' + note.title + '\n\n' + note.body.trim() + '\n',
+    );
+    download('notepad-export-' + stamp + '.md', parts.join('\n---\n\n'));
+  }
+
+  function preparePrintView() {
+    const note = activeNote();
+    el.printView.replaceChildren();
+    if (!note) return;
+    const heading = document.createElement('h1');
+    heading.textContent = note.title;
+    const body = document.createTextNode(note.body);
+    el.printView.append(heading, body);
+  }
+
+  /* -------------------------------------------------------------- commands */
+
+  function newNote(body, title) {
+    dispatch({ type: 'note/new', id: newId(), now: now(), body: body || '', title: title || '' });
+    renderedNoteId = state.activeId;
+    el.editor.value = body || '';
+    focusEditor();
+    el.editor.setSelectionRange(0, 0);
+  }
+
+  function deleteActive() {
+    const note = activeNote();
+    if (!note) return;
+    if (!note.body.trim() && state.notes.length > 1) {
+      dispatch({ type: 'note/delete', id: note.id, now: now() });
+      dispatch({ type: 'note/purge', id: note.id });
+      toast('Deleted empty note');
+      return;
+    }
+    dispatch({ type: 'note/delete', id: note.id, now: now() });
+    toast('Moved "' + note.title + '" to trash', 'Undo', () => {
+      dispatch({ type: 'note/restore', id: note.id, now: now() });
+    });
+  }
+
+  function cycle(list, current, step) {
+    const index = list.indexOf(current);
+    return list[(index + (step || 1) + list.length) % list.length];
+  }
+
+  function insertStamp() {
+    const note = activeNote();
+    if (!note) return;
+    const patched = Core.spliceText(note.body, el.editor.selectionStart, el.editor.selectionEnd, Core.formatStamp(now()));
+    setBody(patched.text, patched.cursor);
+    focusEditor();
+  }
+
+  async function copyWholeNote() {
+    const note = activeNote();
+    if (!note) return;
+    try {
+      await navigator.clipboard.writeText(note.body);
+      toast('Note copied to the clipboard');
+    } catch (error) {
+      el.editor.select();
+      toast('Selected the note - press Ctrl+C to copy');
+    }
+  }
+
+  function openGoto() {
+    const note = activeNote();
+    if (!note) return;
+    const total = Core.countStats(note.body).lines;
+    const at = Core.lineColumnAt(note.body, el.editor.selectionStart);
+    el.gotoInput.max = String(total);
+    el.gotoInput.value = String(at.line);
+    el.gotoHint.textContent = 'This note has ' + Core.plural(total, 'line') + '.';
+    el.gotoDialog.showModal();
+    el.gotoInput.select();
+  }
+
+  function openHelp(showAbout) {
+    el.aboutBlock.hidden = !showAbout;
+    el.helpDialog.querySelector('#dialog-help-title').textContent = showAbout ? 'About Notepad' : 'Keyboard shortcuts';
+    if (!el.helpDialog.open) el.helpDialog.showModal();
+  }
+
+  function toggleFocusMode() {
+    document.body.classList.toggle('focus-mode');
+    renderMenuState();
+    focusEditor();
+  }
+
+  function zoom(step) {
+    setSetting('fontSize', Core.clampFontSize(settings().fontSize + step));
+  }
+
+  const COMMANDS = {
+    'file.new': () => newNote(),
+    'file.duplicate': () => dispatch({ type: 'note/duplicate', id: state.activeId, newId: newId(), now: now() }),
+    'file.open': () => el.fileInput.click(),
+    'file.save': () => { persistNow(); toast('Saved to this browser'); },
+    'file.download.txt': () => withNote((note) => download(Core.filenameFor(note, 'txt'), note.body)),
+    'file.download.md': () => withNote((note) => download(Core.filenameFor(note, 'md'), note.body)),
+    'file.export.all': () => exportAll(),
+    'file.print': () => { preparePrintView(); globalThis.print(); },
+    'file.delete': () => deleteActive(),
+    'edit.find': () => openFind(true),
+    'edit.findNext': () => gotoMatch(1),
+    'edit.findPrev': () => gotoMatch(-1),
+    'edit.replace': () => { openFind(true); el.replaceInput.focus(); },
+    'edit.goto': () => openGoto(),
+    'edit.selectAll': () => { focusEditor(); el.editor.select(); renderStatus(); },
+    'edit.insertDate': () => insertStamp(),
+    'edit.copyAll': () => copyWholeNote(),
+    'note.pin': () => dispatch({ type: 'note/pin', id: state.activeId }),
+    'view.theme.cycle': () => setSetting('theme', cycle(THEME_ORDER, settings().theme)),
+    'view.font.cycle': () => setSetting('fontFamily', cycle(FONT_ORDER, settings().fontFamily)),
+    'view.wrap.toggle': () => setSetting('wordWrap', !settings().wordWrap),
+    'view.spellcheck.toggle': () => setSetting('spellcheck', !settings().spellcheck),
+    'view.zoom.in': () => zoom(1),
+    'view.zoom.out': () => zoom(-1),
+    'view.zoom.reset': () => setSetting('fontSize', Core.DEFAULT_SETTINGS.fontSize),
+    'view.sidebar.toggle': () => toggleSidebar(),
+    'view.status.toggle': () => setSetting('showStatus', !settings().showStatus),
+    'view.focus.toggle': () => toggleFocusMode(),
+    'trash.toggle': () => setSetting('showTrash', !settings().showTrash),
+    'trash.empty': () => { dispatch({ type: 'trash/empty' }); toast('Trash emptied'); },
+    'help.shortcuts': () => openHelp(false),
+    'help.about': () => openHelp(true),
+  };
+
+  function withNote(fn) {
+    const note = activeNote();
+    if (note) fn(note);
+  }
+
+  function run(cmd) {
+    const handler = COMMANDS[cmd];
+    if (!handler) return;
+    closeMenus();
+    handler();
+  }
+
+  /* ------------------------------------------------------------- shortcuts */
+
+  const SHORTCUTS = [
+    { combo: 'mod+n', keys: 'Ctrl+N', cmd: 'file.new', label: 'New note' },
+    { combo: 'mod+alt+n', keys: 'Ctrl+Alt+N', cmd: 'file.new', label: 'New note (when the browser keeps Ctrl+N)' },
+    { combo: 'mod+d', keys: 'Ctrl+D', cmd: 'file.duplicate', label: 'Duplicate note' },
+    { combo: 'mod+o', keys: 'Ctrl+O', cmd: 'file.open', label: 'Open a text file' },
+    { combo: 'mod+s', keys: 'Ctrl+S', cmd: 'file.save', label: 'Save to this browser now' },
+    { combo: 'mod+shift+s', keys: 'Ctrl+Shift+S', cmd: 'file.download.txt', label: 'Download as .txt' },
+    { combo: 'mod+p', keys: 'Ctrl+P', cmd: 'file.print', label: 'Print the note' },
+    { combo: 'mod+f', keys: 'Ctrl+F', cmd: 'edit.find', label: 'Find' },
+    { combo: 'mod+h', keys: 'Ctrl+H', cmd: 'edit.replace', label: 'Find and replace' },
+    { combo: 'f3', keys: 'F3', cmd: 'edit.findNext', label: 'Find next' },
+    { combo: 'shift+f3', keys: 'Shift+F3', cmd: 'edit.findPrev', label: 'Find previous' },
+    { combo: 'mod+g', keys: 'Ctrl+G', cmd: 'edit.goto', label: 'Go to line' },
+    { combo: 'mod+shift+d', keys: 'Ctrl+Shift+D', cmd: 'edit.insertDate', label: 'Insert date and time' },
+    { combo: 'f5', keys: 'F5', cmd: 'edit.insertDate', label: 'Insert date and time (in the editor)' },
+    { combo: 'mod+shift+c', keys: 'Ctrl+Shift+C', cmd: 'edit.copyAll', label: 'Copy the whole note' },
+    { combo: 'mod+b', keys: 'Ctrl+B', cmd: 'view.sidebar.toggle', label: 'Show or hide the note list' },
+    { combo: 'mod+shift+w', keys: 'Ctrl+Shift+W', cmd: 'view.wrap.toggle', label: 'Toggle word wrap' },
+    { combo: 'mod+shift+f', keys: 'Ctrl+Shift+F', cmd: 'view.focus.toggle', label: 'Focus mode' },
+    { combo: 'mod+=', keys: 'Ctrl+Plus', cmd: 'view.zoom.in', label: 'Zoom in' },
+    { combo: 'mod+shift+=', keys: 'Ctrl+Plus', cmd: 'view.zoom.in', label: 'Zoom in' },
+    { combo: 'mod+-', keys: 'Ctrl+Minus', cmd: 'view.zoom.out', label: 'Zoom out' },
+    { combo: 'mod+0', keys: 'Ctrl+0', cmd: 'view.zoom.reset', label: 'Reset zoom' },
+    { combo: 'mod+shift+backspace', keys: 'Ctrl+Shift+Backspace', cmd: 'file.delete', label: 'Move note to trash' },
+    { combo: 'mod+/', keys: 'Ctrl+/', cmd: 'help.shortcuts', label: 'Keyboard shortcuts' },
+  ];
+
+  const MAC_KEYS = { Ctrl: '⌘', Shift: '⇧', Alt: '⌥', Plus: '+', Minus: '-', Backspace: '⌫' };
+  const prettyKeys = (entry) =>
+    isMac ? entry.keys.split('+').map((part) => MAC_KEYS[part] || part).join('') : entry.keys;
+
+  function comboOf(event) {
+    const parts = [];
+    if (event.ctrlKey || event.metaKey) parts.push('mod');
+    if (event.altKey) parts.push('alt');
+    if (event.shiftKey) parts.push('shift');
+    const key = event.key.toLowerCase();
+    parts.push(key === '+' ? '=' : key);
+    return parts.join('+');
+  }
+
+  function renderShortcutHelp() {
+    el.shortcutList.replaceChildren();
+    const seen = new Set();
+    for (const entry of SHORTCUTS) {
+      if (seen.has(entry.keys)) continue;
+      seen.add(entry.keys);
+      const dt = document.createElement('dt');
+      dt.textContent = prettyKeys(entry);
+      const dd = document.createElement('dd');
+      dd.textContent = entry.label;
+      el.shortcutList.append(dt, dd);
+    }
+  }
+
+  function decorateMenus() {
+    const byCommand = new Map();
+    for (const entry of SHORTCUTS) if (!byCommand.has(entry.cmd)) byCommand.set(entry.cmd, entry);
+    for (const item of document.querySelectorAll('.menu-item[data-cmd]')) {
+      const entry = byCommand.get(item.dataset.cmd);
+      if (!entry) continue;
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.textContent = prettyKeys(entry);
+      item.append(hint);
+    }
+  }
+
+  /* ----------------------------------------------------------------- menus */
+
+  function closeMenus() {
+    for (const button of document.querySelectorAll('.menu-button[aria-expanded="true"]')) {
+      button.setAttribute('aria-expanded', 'false');
+      document.getElementById(button.getAttribute('aria-controls')).hidden = true;
+    }
+  }
+
+  function toggleMenu(button) {
+    const open = button.getAttribute('aria-expanded') === 'true';
+    closeMenus();
+    if (open) return;
+    button.setAttribute('aria-expanded', 'true');
+    const menu = document.getElementById(button.getAttribute('aria-controls'));
+    menu.hidden = false;
+    const first = menu.querySelector('.menu-item');
+    if (first) first.focus();
+  }
+
+  function moveMenuFocus(menu, step) {
+    const items = Array.from(menu.querySelectorAll('.menu-item'));
+    const index = items.indexOf(document.activeElement);
+    const next = items[(index + step + items.length) % items.length];
+    if (next) next.focus();
+  }
+
+  /* ----------------------------------------------------------------- wiring */
+
+  document.addEventListener('click', (event) => {
+    const cmdTarget = event.target.closest('[data-cmd]');
+    const menuButton = event.target.closest('.menu-button');
+    const actionTarget = event.target.closest('[data-action]');
+    const closeTarget = event.target.closest('[data-close]');
+
+    if (menuButton) {
+      toggleMenu(menuButton);
+      return;
+    }
+    if (closeTarget) {
+      document.getElementById(closeTarget.dataset.close).close();
+      return;
+    }
+    if (cmdTarget) {
+      run(cmdTarget.dataset.cmd);
+      return;
+    }
+    if (actionTarget) {
+      const id = actionTarget.dataset.id;
+      const action = actionTarget.dataset.action;
+      if (action === 'select') {
+        dispatch({ type: 'note/select', id });
+        if (isNarrow()) toggleSidebar(false);
+        refreshMatches();
+        focusEditor();
+      } else if (action === 'pin') {
+        dispatch({ type: 'note/pin', id });
+      } else if (action === 'delete') {
+        const note = state.notes.find((n) => n.id === id);
+        dispatch({ type: 'note/delete', id, now: now() });
+        if (note) {
+          toast('Moved "' + note.title + '" to trash', 'Undo', () =>
+            dispatch({ type: 'note/restore', id, now: now() }),
+          );
+        }
+      } else if (action === 'restore') {
+        dispatch({ type: 'note/restore', id, now: now() });
+        focusEditor();
+      } else if (action === 'purge') {
+        dispatch({ type: 'note/purge', id });
+      }
+      return;
+    }
+    if (!event.target.closest('.menu')) closeMenus();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    const menu = event.target.closest ? event.target.closest('.menu') : null;
+    if (menu) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveMenuFocus(menu, event.key === 'ArrowDown' ? 1 : -1);
+        return;
+      }
+      if (event.key === 'Escape') {
+        const opener = document.getElementById(menu.getAttribute('aria-labelledby'));
+        closeMenus();
+        if (opener) opener.focus();
+        return;
+      }
+    }
+
+    if (event.key === 'Escape') {
+      if (!el.findBar.hidden && !el.gotoDialog.open && !el.helpDialog.open) {
+        closeFind();
+        return;
+      }
+      closeMenus();
+      return;
+    }
+
+    const combo = comboOf(event);
+    const entry = SHORTCUTS.find((item) => item.combo === combo);
+    if (entry) {
+      if (entry.combo === 'f5' && document.activeElement !== el.editor) return;
+      event.preventDefault();
+      run(entry.cmd);
+      return;
+    }
+
+    if (event.target === el.editor) editorKeys(event);
+    else if (event.target.dataset && event.target.dataset.action === 'select') listKeys(event);
+  });
+
+  function editorKeys(event) {
+    if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      const note = activeNote();
+      if (!note) return;
+      const result = Core.changeIndent(note.body, el.editor.selectionStart, el.editor.selectionEnd, {
+        outdent: event.shiftKey,
+      });
+      setBody(result.text, result.start, result.end);
+    }
+  }
+
+  function listKeys(event) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Delete') return;
+    const rows = Array.from(el.list.querySelectorAll('[data-action="select"]'));
+    const index = rows.indexOf(event.target);
+    event.preventDefault();
+    if (event.key === 'Delete') {
+      const id = event.target.dataset.id;
+      const note = state.notes.find((n) => n.id === id);
+      dispatch({ type: 'note/delete', id, now: now() });
+      if (note) toast('Moved "' + note.title + '" to trash', 'Undo', () => dispatch({ type: 'note/restore', id, now: now() }));
+      return;
+    }
+    const next = rows[index + (event.key === 'ArrowDown' ? 1 : -1)];
+    if (next) next.focus();
+  }
+
+  el.editor.addEventListener('input', () => {
+    const note = activeNote();
+    if (!note) return;
+    dispatch({ type: 'note/edit', id: note.id, body: el.editor.value, now: now() });
+    renderStatus();
+    if (!el.findBar.hidden) refreshMatches();
+  });
+  el.editor.addEventListener('click', renderStatus);
+  el.editor.addEventListener('keyup', renderStatus);
+  el.editor.addEventListener('select', renderStatus);
+  el.editor.addEventListener('scroll', () => closeMenus(), { passive: true });
+
+  el.title.addEventListener('input', () => {
+    const note = activeNote();
+    if (!note) return;
+    dispatch({ type: 'note/rename', id: note.id, title: el.title.value, now: now() });
+  });
+  el.title.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      focusEditor();
+    }
+  });
+
+  el.search.addEventListener('input', renderList);
+  el.sort.addEventListener('change', () => setSetting('sortMode', el.sort.value));
+
+  el.findInput.addEventListener('input', () => {
+    refreshMatches();
+    const note = activeNote();
+    if (!note || !find.matches.length) return;
+    const index = Core.pickMatch(find.matches, el.editor.selectionStart, { direction: 1 });
+    if (index !== -1) {
+      find.index = index;
+      selectRange(find.matches[index]);
+      paintFindCount();
+      el.findInput.focus();
+    }
+  });
+  el.findInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      gotoMatch(event.shiftKey ? -1 : 1);
+      el.findInput.focus();
+    }
+  });
+  el.replaceInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      replaceCurrent();
+    }
+  });
+  document.getElementById('replace-one').addEventListener('click', replaceCurrent);
+  document.getElementById('replace-all').addEventListener('click', replaceEverything);
+  document.getElementById('find-close').addEventListener('click', closeFind);
+
+  for (const [node, key] of [
+    [el.optCase, 'caseSensitive'],
+    [el.optWord, 'wholeWord'],
+    [el.optRegex, 'useRegex'],
+  ]) {
+    node.addEventListener('click', () => {
+      find[key] = !find[key];
+      node.setAttribute('aria-pressed', find[key] ? 'true' : 'false');
+      refreshMatches();
+      el.findInput.focus();
+    });
+  }
+
+  el.gotoForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const note = activeNote();
+    el.gotoDialog.close();
+    if (!note) return;
+    const offset = Core.offsetOfLine(note.body, parseInt(el.gotoInput.value, 10) || 1);
+    focusEditor();
+    el.editor.setSelectionRange(offset, offset);
+    scrollCaretIntoView();
+    renderStatus();
+  });
+
+  el.fileInput.addEventListener('change', () => {
+    importFiles(el.fileInput.files);
+    el.fileInput.value = '';
+  });
+
+  let dragDepth = 0;
+  document.addEventListener('dragenter', (event) => {
+    if (!event.dataTransfer || Array.from(event.dataTransfer.types).indexOf('Files') === -1) return;
+    dragDepth += 1;
+    el.dropVeil.hidden = false;
+  });
+  document.addEventListener('dragover', (event) => {
+    if (!el.dropVeil.hidden) event.preventDefault();
+  });
+  document.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) el.dropVeil.hidden = true;
+  });
+  document.addEventListener('drop', (event) => {
+    if (el.dropVeil.hidden) return;
+    event.preventDefault();
+    dragDepth = 0;
+    el.dropVeil.hidden = true;
+    importFiles(event.dataTransfer.files);
+  });
+
+  globalThis.addEventListener('beforeprint', preparePrintView);
+  globalThis.addEventListener('beforeunload', () => {
+    if (dirty) persistNow();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && dirty) persistNow();
+  });
+  for (const media of [globalThis.matchMedia && globalThis.matchMedia('(prefers-color-scheme: dark)'), NARROW]) {
+    if (!media) continue;
+    const onChange = () => applyChrome();
+    if (media.addEventListener) media.addEventListener('change', onChange);
+    else if (media.addListener) media.addListener(onChange);
+  }
+
+  /* ------------------------------------------------------------------ boot */
+
+  decorateMenus();
+  renderShortcutHelp();
+  render();
+  // Write once on boot: it pins down first-run ids and stores the upgraded
+  // shape after a migration, instead of re-migrating on every load.
+  persistNow();
+  if (!storage.ok) {
+    toast('This browser blocks local storage, so notes will vanish when you leave.');
+  }
+  focusEditor();
+  globalThis.__notepad = { get state() { return state; }, dispatch, run, Core };
+})();
+// ==== view:end ====
+</script>
+</body>
+</html>

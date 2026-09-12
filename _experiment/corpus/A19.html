@@ -1,0 +1,4558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Notepad — a fast, private, offline notepad that lives in a single HTML file.">
+<title>Notepad</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%232f6fed'/%3E%3Cg fill='none' stroke='white' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M18 22h28M18 32h28M18 42h18'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+/* ---------------------------------------------------------------- tokens --- */
+:root {
+  --paper: #faf9f7;
+  --surface: #ffffff;
+  --surface-2: #f1f0ec;
+  --surface-3: #e6e4df;
+  --ink: #1f2328;
+  --ink-soft: #5b6370;
+  --ink-faint: #8a919e;
+  --line: #dcd9d2;
+  --line-strong: #c4c0b6;
+  --accent: #2f6fed;
+  --accent-ink: #ffffff;
+  --accent-soft: #e7efff;
+  --danger: #c0392b;
+  --danger-soft: #fdeceb;
+  --warn-bg: #fff6da;
+  --warn-ink: #6b4e00;
+  --shadow: 0 10px 30px rgba(20, 22, 26, 0.14);
+  --radius: 10px;
+  --radius-sm: 7px;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-sans: var(--font-ui);
+  --font-serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --editor-font: var(--font-mono);
+  --editor-size: 16px;
+  --topbar-h: 48px;
+  --status-h: 30px;
+  --sidebar-w: 272px;
+  --speed: 140ms;
+}
+
+:root[data-theme="dark"],
+:root[data-theme="system"] {
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15171b;
+    --surface: #1b1e23;
+    --surface-2: #22262c;
+    --surface-3: #2c313a;
+    --ink: #e7e9ec;
+    --ink-soft: #a8b0bd;
+    --ink-faint: #79828f;
+    --line: #2e333b;
+    --line-strong: #3c434d;
+    --accent: #7aa2ff;
+    --accent-ink: #10131a;
+    --accent-soft: #23304d;
+    --danger: #ff8478;
+    --danger-soft: #3a211f;
+    --warn-bg: #3a3117;
+    --warn-ink: #f1dda6;
+    --shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #15171b;
+  --surface: #1b1e23;
+  --surface-2: #22262c;
+  --surface-3: #2c313a;
+  --ink: #e7e9ec;
+  --ink-soft: #a8b0bd;
+  --ink-faint: #79828f;
+  --line: #2e333b;
+  --line-strong: #3c434d;
+  --accent: #7aa2ff;
+  --accent-ink: #10131a;
+  --accent-soft: #23304d;
+  --danger: #ff8478;
+  --danger-soft: #3a211f;
+  --warn-bg: #3a3117;
+  --warn-ink: #f1dda6;
+  --shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+}
+
+/* ----------------------------------------------------------------- reset --- */
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 14px/1.45 var(--font-ui);
+  -webkit-text-size-adjust: 100%;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+[hidden] { display: none !important; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- layout --- */
+.app {
+  display: grid;
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr) var(--status-h);
+  height: 100%;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  margin: 0 8px 0 2px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.brand-note {
+  color: var(--ink-faint);
+  font-weight: 400;
+  margin-left: 6px;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.workspace[data-sidebar="closed"] { grid-template-columns: 0 minmax(0, 1fr); }
+.workspace[data-sidebar="closed"] .sidebar { display: none; }
+
+/* --------------------------------------------------------------- controls --- */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--speed), border-color var(--speed);
+}
+
+.button:hover { background: var(--surface-2); }
+.button:active { background: var(--surface-3); }
+
+.button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.button--primary:hover { filter: brightness(1.06); background: var(--accent); }
+
+.button--quiet {
+  border-color: transparent;
+  background: transparent;
+}
+
+.button--quiet:hover { background: var(--surface-2); }
+
+.button--danger {
+  color: var(--danger);
+  border-color: var(--line);
+}
+
+.button--danger:hover { background: var(--danger-soft); }
+
+.button--icon {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+.button svg { width: 16px; height: 16px; flex: none; }
+
+.field {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  min-width: 0;
+}
+
+.field:focus { border-color: var(--accent); }
+
+kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 5px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font: 500 11px/1.5 var(--font-ui);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- sidebar --- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+
+.sidebar-head {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sidebar-head .field { flex: 1 1 auto; }
+
+.note-list {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.note-row { position: relative; }
+
+.note-item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 62px 9px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.note-item:hover { background: var(--surface-2); }
+
+.note-item[aria-current="true"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.note-item__title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-item__preview {
+  color: var(--ink-soft);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
+.note-item__actions {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--speed);
+}
+
+.note-row:hover .note-item__actions,
+.note-row:focus-within .note-item__actions,
+.note-row:has([aria-current="true"]) .note-item__actions { opacity: 1; }
+
+@media (hover: none) {
+  .note-item__actions { opacity: 1; }
+}
+
+.note-item__action {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.note-item__action:hover { background: var(--surface-3); color: var(--ink); }
+.note-item__action[data-on="true"] { color: var(--accent); }
+.note-item__action svg { width: 14px; height: 14px; }
+
+.sidebar-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.sidebar-foot .spacer { margin-left: auto; }
+
+.scrim { display: none; }
+
+.sidebar-empty {
+  padding: 18px 12px;
+  color: var(--ink-faint);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- editor --- */
+.editor-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.panes[data-preview="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+.editor-pane {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: var(--paper);
+}
+
+.gutter {
+  flex: none;
+  width: 3.5em;
+  padding: 14px 8px 14px 0;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-faint);
+  font: var(--editor-size) / 1.55 var(--editor-font);
+  text-align: right;
+  user-select: none;
+  white-space: pre;
+}
+
+#editor {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: var(--editor-size) / 1.55 var(--editor-font);
+  resize: none;
+  tab-size: 2;
+  overflow-wrap: break-word;
+}
+
+#editor::placeholder { color: var(--ink-faint); }
+
+.editor-pane[data-wrap="false"] #editor { white-space: pre; overflow-x: auto; }
+.editor-pane[data-wrap="true"] #editor { white-space: pre-wrap; }
+
+.preview {
+  min-width: 0;
+  padding: 14px 18px 40px;
+  overflow: auto;
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  line-height: 1.6;
+}
+
+.preview > :first-child { margin-top: 0; }
+.preview h1 { font-size: 1.6em; }
+.preview h2 { font-size: 1.35em; }
+.preview h3 { font-size: 1.15em; }
+.preview h1, .preview h2 { border-bottom: 1px solid var(--line); padding-bottom: 0.25em; }
+.preview code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--surface-2);
+  font: 0.92em var(--font-mono);
+}
+.preview pre {
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.preview pre code { padding: 0; background: none; }
+.preview blockquote {
+  margin: 1em 0;
+  padding: 0.2em 0 0.2em 12px;
+  border-left: 3px solid var(--line-strong);
+  color: var(--ink-soft);
+}
+.preview hr { border: 0; border-top: 1px solid var(--line); }
+.preview a { color: var(--accent); }
+.preview li.task { list-style: none; margin-left: -1.2em; }
+.preview img { max-width: 100%; }
+
+/* --------------------------------------------------------------- findbar --- */
+.findbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.findbar .group { display: flex; align-items: center; gap: 4px; }
+.findbar #find-input, .findbar #replace-input { width: 170px; }
+.findbar .find-status { color: var(--ink-soft); font-size: 12px; min-width: 8ch; }
+.findbar .find-status[data-error="true"] { color: var(--danger); }
+.findbar .close { margin-left: auto; }
+
+.toggle-mini {
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 600 11px/1 var(--font-mono);
+  cursor: pointer;
+}
+
+.toggle-mini:hover { background: var(--surface-2); }
+
+.toggle-mini[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------ empty state --- */
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  padding: 24px;
+  background: var(--paper);
+  text-align: center;
+}
+
+.empty-state h2 { margin: 0; font-size: 17px; }
+.empty-state p { margin: 0; color: var(--ink-soft); max-width: 38ch; }
+.empty-state .button { justify-self: center; }
+
+/* ------------------------------------------------------------- statusbar --- */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 10px;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.statusbar .spacer { margin-left: auto; }
+
+.statusbar button {
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.statusbar button:hover { background: var(--surface-2); color: var(--ink); }
+
+.status-warning {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --------------------------------------------------------------- dialogs --- */
+dialog {
+  max-width: min(92vw, 560px);
+  max-height: 86vh;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+dialog::backdrop { background: rgba(16, 18, 22, 0.42); }
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dialog-head h2 { margin: 0; font-size: 15px; }
+.dialog-head .close { margin-left: auto; }
+
+.dialog-body { padding: 14px; overflow: auto; max-height: 62vh; }
+
+.dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.setting__label { font-weight: 600; }
+.setting__hint { grid-column: 1; color: var(--ink-soft); font-size: 12px; }
+.setting__control { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 8px; }
+.setting input[type="range"] { width: 110px; }
+.setting input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 10px;
+}
+
+.stat {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.stat dt { color: var(--ink-soft); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat dd { margin: 2px 0 0; font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+.shortcut-group { margin: 0 0 16px; }
+.shortcut-group:last-child { margin-bottom: 0; }
+.shortcut-group h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.shortcut-row:last-child { border-bottom: 0; }
+.shortcut-row .keys { margin-left: auto; display: flex; gap: 4px; }
+
+/* --------------------------------------------------------------- palette --- */
+#palette-dialog {
+  width: min(92vw, 520px);
+  margin-top: 10vh;
+  padding: 0;
+}
+
+.palette-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: transparent;
+  font-size: 15px;
+}
+
+.palette-input:focus { outline: none; }
+
+.palette-list {
+  margin: 0;
+  padding: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.palette-item[data-active="true"] { background: var(--accent-soft); }
+.palette-item .hit { color: var(--accent); font-weight: 700; }
+.palette-item .group { color: var(--ink-faint); font-size: 11px; }
+.palette-item .keys { margin-left: auto; }
+.palette-empty { padding: 18px; color: var(--ink-faint); text-align: center; }
+
+/* ---------------------------------------------------------------- toasts --- */
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--status-h) + 14px);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(90vw, 420px);
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: toast-in 180ms ease-out;
+}
+
+.toast[data-tone="error"] { border-color: var(--danger); color: var(--danger); }
+
+.toast button {
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ------------------------------------------------------------ drop target --- */
+.dropzone {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-content: center;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(2px);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+  border: 3px dashed var(--accent);
+}
+
+/* --------------------------------------------------------------- responsive */
+@media (max-width: 720px) {
+  :root { --sidebar-w: 86vw; }
+
+  .brand-note { display: none; }
+
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+
+  .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: var(--status-h);
+    left: 0;
+    z-index: 30;
+    width: var(--sidebar-w);
+    box-shadow: var(--shadow);
+  }
+
+  .workspace[data-sidebar="closed"] .sidebar { display: none; }
+
+  .workspace[data-sidebar="open"] .scrim {
+    display: block;
+    position: fixed;
+    inset: var(--topbar-h) 0 var(--status-h);
+    z-index: 20;
+    background: rgba(10, 12, 16, 0.35);
+    border: 0;
+    padding: 0;
+  }
+
+  #status-position { display: none; }
+
+  .panes[data-preview="true"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr 1fr; }
+  .preview { border-left: 0; border-top: 1px solid var(--line); }
+  .findbar #find-input, .findbar #replace-input { width: 120px; }
+  .statusbar { gap: 10px; font-size: 11px; }
+}
+
+@media (max-width: 420px) {
+  .label-wide { display: none; }
+  .brand { font-size: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ----------------------------------------------------------------- print --- */
+#print-area { display: none; }
+
+@media print {
+  .app, .toasts, dialog, .dropzone { display: none !important; }
+
+  #print-area {
+    display: block;
+    margin: 0;
+    padding: 0;
+    color: #000;
+    background: #fff;
+    font: 12pt/1.5 var(--font-mono);
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  #print-area h1 {
+    margin: 0 0 12pt;
+    font: 700 15pt/1.3 var(--font-ui);
+  }
+}
+</style>
+</head>
+<body>
+<noscript>
+  <p style="padding:16px">Notepad needs JavaScript. Your notes are stored in this browser and never leave it.</p>
+</noscript>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <button class="button button--icon button--quiet" id="toggle-sidebar" aria-expanded="true" aria-controls="sidebar" title="Notes list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <span class="visually-hidden">Toggle the notes list</span>
+    </button>
+    <h1 class="brand">Notepad<span class="brand-note" id="active-title"></span></h1>
+
+    <div class="topbar-actions">
+      <button class="button button--primary" id="new-note" title="New note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="label-wide">New</span>
+      </button>
+      <button class="button button--icon" id="toggle-find" title="Find and replace" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>
+        <span class="visually-hidden">Find and replace</span>
+      </button>
+      <button class="button button--icon" id="toggle-preview" title="Markdown preview" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18v14H3z"/><path d="M7 15V9l3 3 3-3v6"/></svg>
+        <span class="visually-hidden">Toggle the markdown preview</span>
+      </button>
+      <button class="button button--icon" id="download-note" title="Save a copy to a file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg>
+        <span class="visually-hidden">Save a copy to a file</span>
+      </button>
+      <button class="button button--icon" id="open-palette" title="Command palette">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m8 9 3 3-3 3"/><path d="M13 15h4"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+        <span class="visually-hidden">Open the command palette</span>
+      </button>
+      <button class="button button--icon" id="open-settings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/></svg>
+        <span class="visually-hidden">Settings</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="workspace" id="workspace" data-sidebar="open">
+    <aside class="sidebar" id="sidebar" aria-label="Notes">
+      <div class="sidebar-head">
+        <input class="field" id="note-search" type="search" placeholder="Search notes" aria-label="Search notes" autocomplete="off">
+        <select class="field" id="sort-mode" aria-label="Sort notes by">
+          <option value="updated">Edited</option>
+          <option value="created">Created</option>
+          <option value="title">Title</option>
+        </select>
+      </div>
+      <ul class="note-list" id="note-list"></ul>
+      <p class="sidebar-empty" id="sidebar-empty" hidden></p>
+      <div class="sidebar-foot">
+        <span id="note-count">No notes</span>
+        <span class="spacer"></span>
+        <button class="button button--quiet" id="import-notes" title="Import notes from a backup file">Import</button>
+        <button class="button button--quiet" id="export-notes" title="Download every note as a backup file">Export</button>
+      </div>
+    </aside>
+    <button class="scrim" id="scrim" aria-label="Close the notes list" tabindex="-1"></button>
+
+    <main class="editor-area">
+      <div class="findbar" id="findbar" role="search" aria-label="Find and replace" hidden>
+        <div class="group">
+          <input class="field" id="find-input" type="text" placeholder="Find" aria-label="Find" autocomplete="off">
+          <button class="toggle-mini" id="find-case" aria-pressed="false" title="Match case">Aa</button>
+          <button class="toggle-mini" id="find-word" aria-pressed="false" title="Whole word">W</button>
+          <button class="toggle-mini" id="find-regex" aria-pressed="false" title="Regular expression">.*</button>
+        </div>
+        <div class="group">
+          <button class="button button--icon" id="find-prev" title="Previous match (Shift+F3)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg>
+            <span class="visually-hidden">Previous match</span>
+          </button>
+          <button class="button button--icon" id="find-next" title="Next match (F3)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg>
+            <span class="visually-hidden">Next match</span>
+          </button>
+          <span class="find-status" id="find-status" role="status"></span>
+        </div>
+        <div class="group">
+          <input class="field" id="replace-input" type="text" placeholder="Replace with" aria-label="Replace with" autocomplete="off">
+          <button class="button" id="replace-one">Replace</button>
+          <button class="button" id="replace-all">All</button>
+        </div>
+        <button class="button button--icon button--quiet close" id="find-close" title="Close (Esc)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          <span class="visually-hidden">Close the find bar</span>
+        </button>
+      </div>
+
+      <div class="panes" id="panes" data-preview="false">
+        <div class="editor-pane" id="editor-pane" data-wrap="true">
+          <div class="gutter" id="gutter" aria-hidden="true" hidden></div>
+          <textarea id="editor" placeholder="Start typing…" aria-label="Note text" spellcheck="true" autocomplete="off" autocapitalize="sentences" wrap="soft"></textarea>
+        </div>
+        <div class="preview" id="preview" aria-label="Markdown preview" hidden></div>
+      </div>
+
+      <div class="empty-state" id="empty-state" hidden>
+        <h2 id="empty-title">No notes yet</h2>
+        <p id="empty-text">Everything you write is saved in this browser only. Nothing is uploaded anywhere.</p>
+        <button class="button button--primary" id="empty-new">Create your first note</button>
+      </div>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span id="status-position">Ln 1, Col 1</span>
+    <span id="status-counts">0 words</span>
+    <button id="status-stats" title="Document statistics">Statistics</button>
+    <span class="spacer"></span>
+    <span class="status-warning" id="status-warning" hidden></span>
+    <span id="status-save" role="status"></span>
+  </footer>
+</div>
+
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+  <form method="dialog">
+    <div class="dialog-head">
+      <h2 id="settings-title">Settings</h2>
+      <button class="button button--icon button--quiet close" value="close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <div class="settings-grid">
+        <div class="setting">
+          <span class="setting__label"><label for="setting-theme">Theme</label></span>
+          <span class="setting__hint">Follows your system by default.</span>
+          <span class="setting__control">
+            <select class="field" id="setting-theme">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </span>
+        </div>
+        <div class="setting">
+          <span class="setting__label"><label for="setting-font">Typeface</label></span>
+          <span class="setting__hint">Used for the editor and preview.</span>
+          <span class="setting__control">
+            <select class="field" id="setting-font">
+              <option value="mono">Monospace</option>
+              <option value="sans">Sans serif</option>
+              <option value="serif">Serif</option>
+            </select>
+          </span>
+        </div>
+        <div class="setting">
+          <span class="setting__label"><label for="setting-size">Text size</label></span>
+          <span class="setting__hint">Between 10 and 32 pixels.</span>
+          <span class="setting__control">
+            <input type="range" id="setting-size" min="10" max="32" step="1">
+            <output id="setting-size-out" for="setting-size">16px</output>
+          </span>
+        </div>
+        <div class="setting">
+          <span class="setting__label"><label for="setting-wrap">Word wrap</label></span>
+          <span class="setting__hint">Off shows long lines on one line with a horizontal scrollbar.</span>
+          <span class="setting__control"><input type="checkbox" id="setting-wrap"></span>
+        </div>
+        <div class="setting">
+          <span class="setting__label"><label for="setting-numbers">Line numbers</label></span>
+          <span class="setting__hint" id="setting-numbers-hint">Available when word wrap is off.</span>
+          <span class="setting__control"><input type="checkbox" id="setting-numbers"></span>
+        </div>
+        <div class="setting">
+          <span class="setting__label"><label for="setting-spell">Spell check</label></span>
+          <span class="setting__hint">Uses your browser's dictionary.</span>
+          <span class="setting__control"><input type="checkbox" id="setting-spell"></span>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="button button--danger" id="delete-everything" type="button">Delete all notes…</button>
+      <button class="button button--primary" value="close">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="stats-dialog" aria-labelledby="stats-title">
+  <form method="dialog">
+    <div class="dialog-head">
+      <h2 id="stats-title">Statistics</h2>
+      <button class="button button--icon button--quiet close" value="close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body">
+      <dl class="stats-grid" id="stats-grid"></dl>
+    </div>
+    <div class="dialog-foot"><button class="button" value="close">Close</button></div>
+  </form>
+</dialog>
+
+<dialog id="shortcuts-dialog" aria-labelledby="shortcuts-title">
+  <form method="dialog">
+    <div class="dialog-head">
+      <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+      <button class="button button--icon button--quiet close" value="close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body" id="shortcuts-body"></div>
+    <div class="dialog-foot"><button class="button" value="close">Close</button></div>
+  </form>
+</dialog>
+
+<dialog id="palette-dialog" aria-label="Command palette">
+  <input class="palette-input" id="palette-input" type="text" placeholder="Type a command…" aria-label="Filter commands" autocomplete="off">
+  <ul class="palette-list" id="palette-list" aria-label="Commands"></ul>
+  <p class="palette-empty" id="palette-empty" hidden>No matching command</p>
+</dialog>
+
+<dialog id="prompt-dialog" aria-labelledby="prompt-title">
+  <form id="prompt-form" method="dialog">
+    <div class="dialog-head"><h2 id="prompt-title">Prompt</h2></div>
+    <div class="dialog-body">
+      <label class="visually-hidden" for="prompt-input" id="prompt-label">Value</label>
+      <input class="field" id="prompt-input" type="text" style="width:100%" autocomplete="off">
+      <p class="setting__hint" id="prompt-hint" style="margin:8px 0 0"></p>
+    </div>
+    <div class="dialog-foot">
+      <button class="button" id="prompt-cancel" type="button">Cancel</button>
+      <button class="button button--primary" id="prompt-ok" value="ok" type="submit">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirm-dialog" aria-labelledby="confirm-title">
+  <form method="dialog">
+    <div class="dialog-head"><h2 id="confirm-title">Are you sure?</h2></div>
+    <div class="dialog-body"><p id="confirm-text" style="margin:0"></p></div>
+    <div class="dialog-foot">
+      <button class="button" value="cancel">Cancel</button>
+      <button class="button button--danger" id="confirm-ok" value="ok">Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="dropzone" id="dropzone" hidden>Drop text files to import them</div>
+<article id="print-area"></article>
+<input type="file" id="file-input" aria-label="Choose text files or a backup to import" multiple accept=".txt,.md,.markdown,.json,.log,.csv,text/plain,application/json" hidden>
+<script id="notepad-core">
+/*
+ * Notepad core — the pure logic layer.
+ *
+ * Rules for this block (enforced by scripts/check-app.mjs and the unit tests):
+ *   - no DOM, no window, no localStorage, no timers: everything here is a pure
+ *     function of its arguments, so it can be unit tested in a plain sandbox;
+ *   - anything non-deterministic (time, randomness) is injected by the caller;
+ *   - it publishes a single global, `NotepadCore`.
+ */
+(function (root) {
+  'use strict';
+
+  var VERSION = '1.0.0';
+
+  /* ------------------------------------------------------------------ utils */
+
+  function asString(value) {
+    if (typeof value === 'string') return value;
+    if (value === null || value === undefined) return '';
+    return String(value);
+  }
+
+  function clamp(value, min, max) {
+    var n = Number(value);
+    if (!isFinite(n)) n = min;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function escapeRegExp(value) {
+    return asString(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /* ------------------------------------------------------------------- text */
+
+  function stats(input) {
+    var value = asString(input);
+    var trimmed = value.trim();
+    var words = trimmed ? trimmed.split(/\s+/).length : 0;
+    return {
+      chars: Array.from(value).length,
+      charsNoSpaces: Array.from(value.replace(/\s/g, '')).length,
+      words: words,
+      lines: value.split('\n').length,
+      sentences: value.split(/[.!?]+/).filter(function (part) {
+        return part.trim() !== '';
+      }).length,
+      paragraphs: value.split(/\n\s*\n/).filter(function (part) {
+        return part.trim() !== '';
+      }).length,
+      readingTimeMinutes: words === 0 ? 0 : Math.ceil(words / 200),
+    };
+  }
+
+  function positionAt(input, index) {
+    var value = asString(input);
+    var at = clamp(index, 0, value.length);
+    var before = value.slice(0, at);
+    var lastBreak = before.lastIndexOf('\n');
+    return {
+      line: before.split('\n').length,
+      column: at - (lastBreak + 1) + 1,
+    };
+  }
+
+  function indexAt(input, line, column) {
+    var value = asString(input);
+    var lines = value.split('\n');
+    var lineNumber = clamp(line === undefined ? 1 : line, 1, lines.length);
+    var offset = 0;
+    for (var i = 0; i < lineNumber - 1; i += 1) offset += lines[i].length + 1;
+    var col = clamp(column === undefined ? 1 : column, 1, lines[lineNumber - 1].length + 1);
+    return offset + col - 1;
+  }
+
+  function lineBounds(input, index) {
+    var value = asString(input);
+    var at = clamp(index, 0, value.length);
+    var start = value.lastIndexOf('\n', at - 1) + 1;
+    var end = value.indexOf('\n', at);
+    return {
+      start: start,
+      end: end === -1 ? value.length : end,
+      number: positionAt(value, at).line,
+    };
+  }
+
+  function lineCount(input) {
+    return asString(input).split('\n').length;
+  }
+
+  function truncate(input, limit) {
+    var value = asString(input).trim();
+    var max = Math.max(1, Math.trunc(Number(limit) || 0));
+    if (value.length <= max) return value;
+    return value.slice(0, max - 1) + '…';
+  }
+
+  var text = {
+    stats: stats,
+    positionAt: positionAt,
+    indexAt: indexAt,
+    lineBounds: lineBounds,
+    lineCount: lineCount,
+    truncate: truncate,
+  };
+
+  /* ------------------------------------------------------------------- edit */
+  /* Every operation takes and returns { value, selectionStart, selectionEnd }. */
+
+  function normalizeState(state) {
+    var source = state || {};
+    var value = asString(source.value);
+    var start = clamp(source.selectionStart, 0, value.length);
+    var end = clamp(source.selectionEnd, 0, value.length);
+    if (end < start) {
+      var swap = start;
+      start = end;
+      end = swap;
+    }
+    return { value: value, selectionStart: start, selectionEnd: end };
+  }
+
+  function makeState(value, start, end) {
+    return normalizeState({
+      value: value,
+      selectionStart: start,
+      selectionEnd: end === undefined ? start : end,
+    });
+  }
+
+  /** The full span of the lines touched by the selection. */
+  function lineBlock(state) {
+    var start = lineBounds(state.value, state.selectionStart).start;
+    var endIndex = state.selectionEnd;
+    if (endIndex > state.selectionStart && state.value.charAt(endIndex - 1) === '\n') {
+      endIndex -= 1;
+    }
+    return { start: start, end: lineBounds(state.value, endIndex).end };
+  }
+
+  function insert(state, snippet) {
+    var s = normalizeState(state);
+    var addition = asString(snippet);
+    var value = s.value.slice(0, s.selectionStart) + addition + s.value.slice(s.selectionEnd);
+    return makeState(value, s.selectionStart + addition.length);
+  }
+
+  function indent(state, options) {
+    var s = normalizeState(state);
+    var unit = (options && options.unit) || '  ';
+    if (s.selectionStart === s.selectionEnd) return insert(s, unit);
+
+    var block = lineBlock(s);
+    var replaced = s.value
+      .slice(block.start, block.end)
+      .split('\n')
+      .map(function (line) {
+        return line.trim() === '' ? line : unit + line;
+      })
+      .join('\n');
+    var value = s.value.slice(0, block.start) + replaced + s.value.slice(block.end);
+    return makeState(value, block.start, block.start + replaced.length);
+  }
+
+  function outdent(state, options) {
+    var s = normalizeState(state);
+    var unit = (options && options.unit) || '  ';
+    var block = lineBlock(s);
+    var firstRemoved = 0;
+    var totalRemoved = 0;
+    var replaced = s.value
+      .slice(block.start, block.end)
+      .split('\n')
+      .map(function (line, lineIndex) {
+        var leading = line.match(/^[ \t]+/);
+        if (!leading) return line;
+        var remove = line.charAt(0) === '\t' ? 1 : Math.min(leading[0].length, unit.length);
+        if (lineIndex === 0) firstRemoved = remove;
+        totalRemoved += remove;
+        return line.slice(remove);
+      })
+      .join('\n');
+    var value = s.value.slice(0, block.start) + replaced + s.value.slice(block.end);
+    var start = Math.max(block.start, s.selectionStart - firstRemoved);
+    var end = Math.max(start, s.selectionEnd - totalRemoved);
+    return makeState(value, start, end);
+  }
+
+  function duplicateLines(state) {
+    var s = normalizeState(state);
+    var block = lineBlock(s);
+    var chunk = s.value.slice(block.start, block.end);
+    var value = s.value.slice(0, block.end) + '\n' + chunk + s.value.slice(block.end);
+    var shift = chunk.length + 1;
+    return makeState(value, s.selectionStart + shift, s.selectionEnd + shift);
+  }
+
+  function moveLines(state, direction) {
+    var s = normalizeState(state);
+    var lines = s.value.split('\n');
+    var block = lineBlock(s);
+    var first = positionAt(s.value, block.start).line - 1;
+    var last = positionAt(s.value, block.end).line - 1;
+    var up = Number(direction) < 0;
+    if (up && first === 0) return s;
+    if (!up && last === lines.length - 1) return s;
+
+    var moved = lines.splice(first, last - first + 1);
+    var target = up ? first - 1 : first + 1;
+    lines.splice.apply(lines, [target, 0].concat(moved));
+    var value = lines.join('\n');
+    var shift = indexAt(value, target + 1, 1) - block.start;
+    return makeState(value, s.selectionStart + shift, s.selectionEnd + shift);
+  }
+
+  function deleteLines(state) {
+    var s = normalizeState(state);
+    var block = lineBlock(s);
+    var from = block.start;
+    var to = block.end;
+    if (s.value.charAt(to) === '\n') to += 1;
+    else if (from > 0 && s.value.charAt(from - 1) === '\n') from -= 1;
+    return makeState(s.value.slice(0, from) + s.value.slice(to), from);
+  }
+
+  function wrap(state, before, after) {
+    var s = normalizeState(state);
+    var open = asString(before);
+    var close = after === undefined ? open : asString(after);
+    var selected = s.value.slice(s.selectionStart, s.selectionEnd);
+
+    var alreadyInside =
+      selected.length >= open.length + close.length &&
+      open.length > 0 &&
+      selected.slice(0, open.length) === open &&
+      selected.slice(selected.length - close.length) === close;
+    if (alreadyInside) {
+      var inner = selected.slice(open.length, selected.length - close.length);
+      return makeState(
+        s.value.slice(0, s.selectionStart) + inner + s.value.slice(s.selectionEnd),
+        s.selectionStart,
+        s.selectionStart + inner.length
+      );
+    }
+
+    var wrappedOutside =
+      selected.length > 0 &&
+      s.selectionStart >= open.length &&
+      s.value.slice(s.selectionStart - open.length, s.selectionStart) === open &&
+      s.value.slice(s.selectionEnd, s.selectionEnd + close.length) === close;
+    if (wrappedOutside) {
+      var start = s.selectionStart - open.length;
+      return makeState(
+        s.value.slice(0, start) + selected + s.value.slice(s.selectionEnd + close.length),
+        start,
+        start + selected.length
+      );
+    }
+
+    var value =
+      s.value.slice(0, s.selectionStart) +
+      open +
+      selected +
+      close +
+      s.value.slice(s.selectionEnd);
+    return makeState(value, s.selectionStart + open.length, s.selectionStart + open.length + selected.length);
+  }
+
+  function transformSelection(state, transform) {
+    var s = normalizeState(state);
+    var from = s.selectionStart;
+    var to = s.selectionEnd;
+    if (from === to) {
+      var bounds = lineBounds(s.value, from);
+      from = bounds.start;
+      to = bounds.end;
+    }
+    var replaced = asString(transform(s.value.slice(from, to)));
+    return makeState(s.value.slice(0, from) + replaced + s.value.slice(to), from, from + replaced.length);
+  }
+
+  function sortLines(state) {
+    var s = normalizeState(state);
+    var from = 0;
+    var to = s.value.length;
+    if (s.selectionStart !== s.selectionEnd) {
+      var block = lineBlock(s);
+      from = block.start;
+      to = block.end;
+    }
+    var sorted = s.value
+      .slice(from, to)
+      .split('\n')
+      .map(function (line, index) {
+        return { line: line, index: index };
+      })
+      .sort(function (a, b) {
+        var compared = a.line.localeCompare(b.line, undefined, { sensitivity: 'base' });
+        return compared !== 0 ? compared : a.index - b.index;
+      })
+      .map(function (entry) {
+        return entry.line;
+      })
+      .join('\n');
+    return makeState(s.value.slice(0, from) + sorted + s.value.slice(to), from, from + sorted.length);
+  }
+
+  function trimTrailingWhitespace(value) {
+    return asString(value).replace(/[ \t]+$/gm, '');
+  }
+
+  var LIST_PREFIX = /^([ \t]*)(?:([-*+]|\d+[.)])[ \t]+(\[[ xX]\][ \t]*)?)?/;
+
+  function applyNewlineIndent(state) {
+    var s = normalizeState(state);
+    var bounds = lineBounds(s.value, s.selectionStart);
+    var line = s.value.slice(bounds.start, bounds.end);
+    var match = line.match(LIST_PREFIX);
+    var indentation = match[1] || '';
+    var marker = match[2] || '';
+    var task = match[3] || '';
+    var rest = line.slice(match[0].length);
+
+    if (marker && rest.trim() === '') {
+      // An empty list item: clear it instead of adding another one.
+      return makeState(s.value.slice(0, bounds.start) + s.value.slice(s.selectionEnd), bounds.start);
+    }
+
+    var prefix = indentation;
+    if (marker) {
+      var ordered = marker.match(/^(\d+)([.)])$/);
+      prefix += ordered ? String(Number(ordered[1]) + 1) + ordered[2] + ' ' : marker + ' ';
+      if (task) prefix += '[ ] ';
+    }
+    return insert(s, '\n' + prefix);
+  }
+
+  var edit = {
+    normalizeState: normalizeState,
+    lineBlock: lineBlock,
+    insert: insert,
+    indent: indent,
+    outdent: outdent,
+    duplicateLines: duplicateLines,
+    moveLines: moveLines,
+    deleteLines: deleteLines,
+    wrap: wrap,
+    transformSelection: transformSelection,
+    sortLines: sortLines,
+    trimTrailingWhitespace: trimTrailingWhitespace,
+    applyNewlineIndent: applyNewlineIndent,
+  };
+
+  /* ----------------------------------------------------------------- search */
+
+  function compile(options) {
+    var config = options || {};
+    var query = asString(config.query);
+    if (!query) return { ok: false, empty: true, error: '' };
+
+    var source = config.regex ? query : escapeRegExp(query);
+    if (config.wholeWord) source = '\\b(?:' + source + ')\\b';
+    try {
+      return {
+        ok: true,
+        empty: false,
+        error: '',
+        pattern: new RegExp(source, config.caseSensitive ? 'g' : 'gi'),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        empty: false,
+        error: (error && error.message) || 'Invalid regular expression',
+      };
+    }
+  }
+
+  function findMatches(value, options, config) {
+    var haystack = asString(value);
+    var limit = (config && config.limit) || 5000;
+    var compiled = compile(options);
+    if (!compiled.ok) return [];
+
+    var pattern = compiled.pattern;
+    pattern.lastIndex = 0;
+    var matches = [];
+    var found;
+    while ((found = pattern.exec(haystack)) !== null) {
+      matches.push({
+        start: found.index,
+        end: found.index + found[0].length,
+        text: found[0],
+        groups: Array.prototype.slice.call(found, 1),
+      });
+      if (found[0].length === 0) pattern.lastIndex += 1;
+      if (matches.length >= limit) break;
+    }
+    return matches;
+  }
+
+  function activeIndex(matches, caret, direction) {
+    var list = matches || [];
+    if (!list.length) return -1;
+    var at = Number(caret) || 0;
+    if (Number(direction) >= 0) {
+      for (var i = 0; i < list.length; i += 1) {
+        if (list[i].start >= at) return i;
+      }
+      return 0;
+    }
+    for (var j = list.length - 1; j >= 0; j -= 1) {
+      if (list[j].end <= at) return j;
+    }
+    return list.length - 1;
+  }
+
+  function expandReplacement(replacement, match) {
+    return asString(replacement).replace(/\$(\$|&|\d{1,2})/g, function (all, token) {
+      if (token === '$') return '$';
+      if (token === '&') return asString(match && match.text);
+      var groups = (match && match.groups) || [];
+      var group = groups[Number(token) - 1];
+      return group === undefined || group === null ? '' : group;
+    });
+  }
+
+  function replaceOne(value, match, replacement, options) {
+    var haystack = asString(value);
+    var start = clamp(match && match.start, 0, haystack.length);
+    var end = clamp(match && match.end, start, haystack.length);
+    var text_ = options && options.regex ? expandReplacement(replacement, match) : asString(replacement);
+    return {
+      value: haystack.slice(0, start) + text_ + haystack.slice(end),
+      selectionStart: start,
+      selectionEnd: start + text_.length,
+    };
+  }
+
+  function replaceAll(value, options, replacement) {
+    var haystack = asString(value);
+    var matches = findMatches(haystack, options, { limit: Infinity });
+    if (!matches.length) return { value: haystack, count: 0 };
+
+    var useRegex = !!(options && options.regex);
+    var out = '';
+    var cursor = 0;
+    for (var i = 0; i < matches.length; i += 1) {
+      var match = matches[i];
+      out += haystack.slice(cursor, match.start);
+      out += useRegex ? expandReplacement(replacement, match) : asString(replacement);
+      cursor = match.end;
+    }
+    out += haystack.slice(cursor);
+    return { value: out, count: matches.length };
+  }
+
+  var search = {
+    compile: compile,
+    findMatches: findMatches,
+    activeIndex: activeIndex,
+    replaceOne: replaceOne,
+    replaceAll: replaceAll,
+    expandReplacement: expandReplacement,
+  };
+
+  /* ----------------------------------------------------------------- format */
+
+  var SECOND = 1000;
+  var MINUTE = 60 * SECOND;
+  var HOUR = 60 * MINUTE;
+  var DAY = 24 * HOUR;
+
+  function relativeTime(when, now) {
+    if (when === null || when === undefined || when === '') return '';
+    var stamp = Number(when);
+    if (!isFinite(stamp)) return '';
+    var reference = isFinite(Number(now)) ? Number(now) : Date.now();
+    var diff = reference - stamp;
+
+    if (diff < 45 * SECOND) return 'just now';
+    if (diff < HOUR) return Math.max(1, Math.floor(diff / MINUTE)) + ' min ago';
+    if (diff < DAY) return Math.max(1, Math.floor(diff / HOUR)) + ' hr ago';
+    if (diff < 2 * DAY) return 'yesterday';
+    if (diff < 7 * DAY) return Math.floor(diff / DAY) + ' days ago';
+    return new Date(stamp).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  function fileName(title, extension) {
+    var ext = asString(extension) || '.txt';
+    if (ext.charAt(0) !== '.') ext = '.' + ext;
+    var base = asString(title)
+      .trim()
+      .replace(/[^\p{L}\p{N}]+/gu, '-')
+      .replace(/^-+|-+$/g, '');
+    if (base.length > 60) base = base.slice(0, 60).replace(/-+$/, '');
+    return (base || 'note') + ext;
+  }
+
+  function bytes(value) {
+    var size = Number(value);
+    if (!isFinite(size) || size <= 0) return '0 B';
+    var units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    var unit = 0;
+    while (size >= 1024 && unit < units.length - 1) {
+      size /= 1024;
+      unit += 1;
+    }
+    var rounded = size >= 10 || unit === 0 ? Math.round(size) : Math.round(size * 10) / 10;
+    return rounded + ' ' + units[unit];
+  }
+
+  function formatNumber(value) {
+    var number = Number(value);
+    if (!isFinite(number)) number = 0;
+    return number.toLocaleString('en-US');
+  }
+
+  function plural(count, singular, pluralForm) {
+    var number = Number(count);
+    if (!isFinite(number)) number = 0;
+    var word = Math.abs(number) === 1 ? singular : pluralForm || singular + 's';
+    return formatNumber(number) + ' ' + word;
+  }
+
+  function timestamp(value) {
+    var date = new Date(isFinite(Number(value)) ? Number(value) : Date.now());
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
+  var format = {
+    number: formatNumber,
+    relativeTime: relativeTime,
+    fileName: fileName,
+    bytes: bytes,
+    plural: plural,
+    timestamp: timestamp,
+  };
+
+  /* ------------------------------------------------------------------ notes */
+
+  var TITLE_LIMIT = 60;
+  var DEFAULT_TITLE = 'Untitled note';
+
+  function createIdFactory(options) {
+    var config = options || {};
+    var clock = config.now || function () { return Date.now(); };
+    var dice = config.random || Math.random;
+    var sequence = 0;
+    return function () {
+      sequence += 1;
+      var stamp = Math.abs(Math.trunc(Number(clock()) || 0)).toString(36);
+      var noise = Math.abs(Math.trunc(dice() * 1679615)).toString(36);
+      return stamp + '-' + sequence.toString(36) + '-' + noise;
+    };
+  }
+
+  var nextId = createIdFactory();
+
+  function createNote(options) {
+    var config = options || {};
+    var now = Number(config.now);
+    if (!isFinite(now)) now = Date.now();
+    return {
+      id: config.id ? String(config.id) : nextId(),
+      title: asString(config.title),
+      body: asString(config.body),
+      pinned: !!config.pinned,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  function deriveTitle(body, fallback) {
+    var lines = asString(body).split('\n');
+    for (var i = 0; i < lines.length; i += 1) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      var cleaned = line
+        .replace(/^#{1,6}\s+/, '')
+        .replace(/^>\s*/, '')
+        .replace(/^[-*+]\s+/, '')
+        .replace(/^\d+[.)]\s+/, '')
+        .replace(/^\[[ xX]\]\s*/, '')
+        .trim();
+      if (cleaned) return truncate(cleaned, TITLE_LIMIT);
+    }
+    var alternative = asString(fallback);
+    return alternative || DEFAULT_TITLE;
+  }
+
+  function displayTitle(note) {
+    var explicit = asString(note && note.title).trim();
+    if (explicit) return truncate(explicit, TITLE_LIMIT);
+    return deriveTitle(note && note.body);
+  }
+
+  function updateNote(note, patch, now) {
+    var source = note || {};
+    var next = {
+      id: source.id,
+      title: asString(source.title),
+      body: asString(source.body),
+      pinned: !!source.pinned,
+      createdAt: source.createdAt,
+      updatedAt: source.updatedAt,
+    };
+    var changed = false;
+
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'title')) {
+      var title = asString(patch.title);
+      if (title !== next.title) {
+        next.title = title;
+        changed = true;
+      }
+    }
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'body')) {
+      var body = asString(patch.body);
+      if (body !== next.body) {
+        next.body = body;
+        changed = true;
+      }
+    }
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'pinned')) {
+      var pinned = !!patch.pinned;
+      if (pinned !== next.pinned) {
+        next.pinned = pinned;
+        changed = true;
+      }
+    }
+    if (!changed) return note;
+
+    var stamp = Number(now);
+    next.updatedAt = isFinite(stamp) ? stamp : Date.now();
+    return next;
+  }
+
+  var SORT_COMPARATORS = {
+    updated: function (a, b) {
+      return (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0);
+    },
+    created: function (a, b) {
+      return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
+    },
+    title: function (a, b) {
+      return displayTitle(a).localeCompare(displayTitle(b), undefined, { sensitivity: 'base' });
+    },
+  };
+
+  function sortNotes(list, mode) {
+    var compare = SORT_COMPARATORS[mode] || SORT_COMPARATORS.updated;
+    return (list || [])
+      .map(function (note, index) {
+        return { note: note, index: index };
+      })
+      .sort(function (a, b) {
+        var pins = (b.note.pinned ? 1 : 0) - (a.note.pinned ? 1 : 0);
+        if (pins !== 0) return pins;
+        var ordered = compare(a.note, b.note);
+        return ordered !== 0 ? ordered : a.index - b.index;
+      })
+      .map(function (entry) {
+        return entry.note;
+      });
+  }
+
+  function filterNotes(list, query) {
+    var all = list || [];
+    var needle = asString(query).trim().toLowerCase();
+    if (!needle) return all.slice();
+    return all.filter(function (note) {
+      var haystack = displayTitle(note) + '\n' + asString(note.body);
+      return haystack.toLowerCase().indexOf(needle) !== -1;
+    });
+  }
+
+  function previewOf(note, limit) {
+    var body = asString(note && note.body);
+    var rest = body;
+    if (!asString(note && note.title).trim()) {
+      var lines = body.split('\n');
+      var first = 0;
+      while (first < lines.length && lines[first].trim() === '') first += 1;
+      rest = lines.slice(first + 1).join('\n');
+    }
+    return truncate(rest.replace(/\s+/g, ' '), limit || 90);
+  }
+
+  function neighbourId(list, id) {
+    var all = list || [];
+    var index = -1;
+    for (var i = 0; i < all.length; i += 1) {
+      if (all[i] && all[i].id === id) {
+        index = i;
+        break;
+      }
+    }
+    if (index === -1) return null;
+    if (all[index + 1]) return all[index + 1].id;
+    if (all[index - 1]) return all[index - 1].id;
+    return null;
+  }
+
+  var notes = {
+    DEFAULT_TITLE: DEFAULT_TITLE,
+    create: createNote,
+    createIdFactory: createIdFactory,
+    nextId: nextId,
+    deriveTitle: deriveTitle,
+    displayTitle: displayTitle,
+    update: updateNote,
+    sort: sortNotes,
+    filter: filterNotes,
+    preview: previewOf,
+    neighbourId: neighbourId,
+  };
+
+  /* --------------------------------------------------------------- settings */
+
+  var THEMES = ['system', 'light', 'dark'];
+  var FONT_FAMILIES = ['mono', 'sans', 'serif'];
+  var SORT_MODES = ['updated', 'created', 'title'];
+  var FONT_SIZE_MIN = 10;
+  var FONT_SIZE_MAX = 32;
+
+  var DEFAULT_SETTINGS = Object.freeze({
+    theme: 'system',
+    fontFamily: 'mono',
+    fontSize: 16,
+    wordWrap: true,
+    lineNumbers: false,
+    spellcheck: true,
+    sortMode: 'updated',
+    sidebarOpen: true,
+    previewOpen: false,
+  });
+
+  function oneOf(allowed, value, fallback) {
+    return allowed.indexOf(value) !== -1 ? value : fallback;
+  }
+
+  function flag(input, key) {
+    return Object.prototype.hasOwnProperty.call(input, key) ? !!input[key] : DEFAULT_SETTINGS[key];
+  }
+
+  function normalizeSettings(partial) {
+    var input = partial && typeof partial === 'object' ? partial : {};
+    var size = Number(input.fontSize);
+    return {
+      theme: oneOf(THEMES, input.theme, DEFAULT_SETTINGS.theme),
+      fontFamily: oneOf(FONT_FAMILIES, input.fontFamily, DEFAULT_SETTINGS.fontFamily),
+      fontSize: isFinite(size) && size > 0 ? clamp(Math.round(size), FONT_SIZE_MIN, FONT_SIZE_MAX) : DEFAULT_SETTINGS.fontSize,
+      wordWrap: flag(input, 'wordWrap'),
+      lineNumbers: flag(input, 'lineNumbers'),
+      spellcheck: flag(input, 'spellcheck'),
+      sortMode: oneOf(SORT_MODES, input.sortMode, DEFAULT_SETTINGS.sortMode),
+      sidebarOpen: flag(input, 'sidebarOpen'),
+      previewOpen: flag(input, 'previewOpen'),
+    };
+  }
+
+  var settings = {
+    DEFAULTS: DEFAULT_SETTINGS,
+    THEMES: THEMES,
+    FONT_FAMILIES: FONT_FAMILIES,
+    SORT_MODES: SORT_MODES,
+    FONT_SIZE_MIN: FONT_SIZE_MIN,
+    FONT_SIZE_MAX: FONT_SIZE_MAX,
+    normalize: normalizeSettings,
+  };
+
+  /* ---------------------------------------------------------------- storage */
+
+  var SCHEMA_VERSION = 1;
+  var APP_NAME = 'notepad';
+
+  function normalizeStoredNote(raw, now) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    var hasContent =
+      Object.prototype.hasOwnProperty.call(raw, 'body') ||
+      Object.prototype.hasOwnProperty.call(raw, 'title') ||
+      Object.prototype.hasOwnProperty.call(raw, 'id');
+    if (!hasContent) return null;
+
+    var created = raw.createdAt === null || raw.createdAt === undefined ? NaN : Number(raw.createdAt);
+    var updated = raw.updatedAt === null || raw.updatedAt === undefined ? NaN : Number(raw.updatedAt);
+    if (!isFinite(created)) created = isFinite(updated) ? updated : now;
+    if (!isFinite(updated)) updated = created;
+
+    return {
+      id: raw.id ? String(raw.id) : nextId(),
+      title: raw.title === null || raw.title === undefined ? '' : asString(raw.title),
+      body: raw.body === null || raw.body === undefined ? '' : asString(raw.body),
+      pinned: !!raw.pinned,
+      createdAt: created,
+      updatedAt: updated,
+    };
+  }
+
+  function collectNotes(rawList, now) {
+    var kept = [];
+    var dropped = 0;
+    (rawList || []).forEach(function (entry) {
+      var note = normalizeStoredNote(entry, now);
+      if (note) kept.push(note);
+      else dropped += 1;
+    });
+    return { notes: kept, dropped: dropped };
+  }
+
+  function droppedWarning(count) {
+    return plural(count, 'unreadable note') + ' ' + (count === 1 ? 'was' : 'were') + ' skipped.';
+  }
+
+  function serializeState(state) {
+    var input = state || {};
+    var now = isFinite(Number(input.now)) ? Number(input.now) : Date.now();
+    return JSON.stringify({
+      app: APP_NAME,
+      version: SCHEMA_VERSION,
+      savedAt: new Date(now).toISOString(),
+      activeId: input.activeId || null,
+      settings: normalizeSettings(input.settings),
+      notes: collectNotes(input.notes, now).notes,
+    });
+  }
+
+  function parseState(raw, options) {
+    var now = isFinite(Number(options && options.now)) ? Number(options.now) : Date.now();
+    var warnings = [];
+    var input = asString(raw);
+    if (!input.trim()) {
+      return { notes: [], settings: normalizeSettings(), activeId: null, warnings: warnings };
+    }
+
+    var data;
+    try {
+      data = JSON.parse(input);
+    } catch (error) {
+      data = null;
+    }
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      // Either genuinely plain text or damaged JSON: keep the words rather than
+      // silently throwing away whatever the user had written.
+      var recovered = createNote({ body: input, now: now });
+      warnings.push('The saved data was not readable, so it was recovered into a single note.');
+      return {
+        notes: [recovered],
+        settings: normalizeSettings(),
+        activeId: recovered.id,
+        warnings: warnings,
+      };
+    }
+
+    var version = Number(data.version);
+    if (!isFinite(version)) {
+      warnings.push('These notes were saved by an older version of Notepad and have been upgraded.');
+    } else if (version > SCHEMA_VERSION) {
+      warnings.push('These notes were saved by a newer version of Notepad; anything unrecognised was ignored.');
+    }
+
+    var collected = collectNotes(data.notes, now);
+    if (collected.dropped) warnings.push(droppedWarning(collected.dropped));
+
+    var activeId = data.activeId ? String(data.activeId) : null;
+    var found = collected.notes.some(function (note) {
+      return note.id === activeId;
+    });
+    if (!found) activeId = collected.notes.length ? collected.notes[0].id : null;
+
+    return {
+      notes: collected.notes,
+      settings: normalizeSettings(data.settings),
+      activeId: activeId,
+      warnings: warnings,
+    };
+  }
+
+  function exportBundle(state, options) {
+    var input = state || {};
+    var now = isFinite(Number(options && options.now)) ? Number(options.now) : Date.now();
+    return JSON.stringify(
+      {
+        app: APP_NAME,
+        version: SCHEMA_VERSION,
+        exportedAt: new Date(now).toISOString(),
+        settings: normalizeSettings(input.settings),
+        notes: collectNotes(input.notes, now).notes,
+      },
+      null,
+      2
+    );
+  }
+
+  function importBundle(raw, options) {
+    var existing = (options && options.existing) || [];
+    var now = isFinite(Number(options && options.now)) ? Number(options.now) : Date.now();
+    var data;
+    try {
+      data = JSON.parse(asString(raw));
+    } catch (error) {
+      return {
+        ok: false,
+        notes: [],
+        warnings: [],
+        error: 'That file is not a Notepad backup: it is not valid JSON.',
+      };
+    }
+
+    var rawNotes = null;
+    if (Array.isArray(data)) rawNotes = data;
+    else if (data && Array.isArray(data.notes)) rawNotes = data.notes;
+    else if (data && typeof data === 'object' && (data.body !== undefined || data.title !== undefined)) rawNotes = [data];
+
+    if (!rawNotes) {
+      return { ok: false, notes: [], warnings: [], error: 'That file does not contain any notes.' };
+    }
+
+    var taken = {};
+    existing.forEach(function (note) {
+      if (note && note.id) taken[note.id] = true;
+    });
+
+    var collected = collectNotes(rawNotes, now);
+    collected.notes.forEach(function (note) {
+      while (taken[note.id]) note.id = nextId();
+      taken[note.id] = true;
+    });
+
+    var warnings = [];
+    if (collected.dropped) warnings.push(droppedWarning(collected.dropped));
+    return { ok: true, notes: collected.notes, warnings: warnings, error: '' };
+  }
+
+  var storage = {
+    SCHEMA_VERSION: SCHEMA_VERSION,
+    APP_NAME: APP_NAME,
+    serialize: serializeState,
+    parse: parseState,
+    exportBundle: exportBundle,
+    importBundle: importBundle,
+  };
+
+  /* ---------------------------------------------------------------- history */
+
+  function cloneSnapshot(snapshot) {
+    return normalizeState(snapshot);
+  }
+
+  function createHistory(initial, options) {
+    var config = options || {};
+    var limit = Math.max(2, Math.trunc(Number(config.limit) || 200));
+    var coalesceMs = isFinite(Number(config.coalesceMs)) ? Number(config.coalesceMs) : 700;
+
+    var entries = [cloneSnapshot(initial)];
+    var index = 0;
+    var lastLabel = null;
+    var lastTime = -Infinity;
+
+    function push(snapshot, meta) {
+      var next = cloneSnapshot(snapshot);
+      var label = meta && meta.label ? String(meta.label) : '';
+      var time = isFinite(Number(meta && meta.time)) ? Number(meta.time) : Date.now();
+
+      if (entries[index].value === next.value) {
+        // Same text, possibly a new caret position: keep it without adding a step.
+        entries[index] = next;
+        return false;
+      }
+      if (index < entries.length - 1) entries.length = index + 1;
+
+      var mergeable = label !== '' && label === lastLabel && time - lastTime <= coalesceMs && index > 0;
+      if (mergeable) {
+        entries[index] = next;
+      } else {
+        entries.push(next);
+        index = entries.length - 1;
+        if (entries.length > limit) {
+          entries.shift();
+          index -= 1;
+        }
+      }
+      lastLabel = label;
+      lastTime = time;
+      return true;
+    }
+
+    function undo() {
+      if (index === 0) return null;
+      index -= 1;
+      lastLabel = null;
+      lastTime = -Infinity;
+      return cloneSnapshot(entries[index]);
+    }
+
+    function redo() {
+      if (index >= entries.length - 1) return null;
+      index += 1;
+      lastLabel = null;
+      lastTime = -Infinity;
+      return cloneSnapshot(entries[index]);
+    }
+
+    function reset(snapshot) {
+      entries = [cloneSnapshot(snapshot)];
+      index = 0;
+      lastLabel = null;
+      lastTime = -Infinity;
+    }
+
+    return {
+      push: push,
+      undo: undo,
+      redo: redo,
+      reset: reset,
+      current: function () {
+        return cloneSnapshot(entries[index]);
+      },
+      canUndo: function () {
+        return index > 0;
+      },
+      canRedo: function () {
+        return index < entries.length - 1;
+      },
+      size: function () {
+        return entries.length;
+      },
+    };
+  }
+
+  var history = { create: createHistory };
+
+  /* --------------------------------------------------------------- markdown */
+
+  function escapeHtml(value) {
+    return asString(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function safeUrl(url) {
+    var value = asString(url).trim();
+    if (!value) return '';
+    if (/[\u0000-\u0020<>"']/.test(value)) return '';
+    if (/^[a-z][a-z0-9+.\-]*:/i.test(value) && !/^(https?|mailto):/i.test(value)) return '';
+    return value;
+  }
+
+  function applyEmphasis(escaped) {
+    return escaped
+      .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__([^_]+?)__/g, '<strong>$1</strong>')
+      .replace(/~~([^~]+?)~~/g, '<del>$1</del>')
+      .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?![*\w])/g, '$1<em>$2</em>')
+      .replace(/(^|[^_\w])_([^_\s][^_]*?)_(?![_\w])/g, '$1<em>$2</em>');
+  }
+
+  var CODE_MARK = '\u0000';
+  var LINK_MARK = '\u0001';
+
+  function renderInline(source) {
+    var codes = [];
+    var links = [];
+
+    var working = asString(source).replace(/`([^`]+)`/g, function (all, code) {
+      codes.push('<code>' + escapeHtml(code) + '</code>');
+      return CODE_MARK + (codes.length - 1) + CODE_MARK;
+    });
+
+    working = working.replace(/\[([^\]]*)\]\(([^)\s]*)\)/g, function (all, label, url) {
+      var href = safeUrl(url);
+      if (!href) return label;
+      links.push({ href: href, label: label });
+      return LINK_MARK + (links.length - 1) + LINK_MARK;
+    });
+
+    working = applyEmphasis(escapeHtml(working));
+
+    working = working.replace(new RegExp(LINK_MARK + '(\\d+)' + LINK_MARK, 'g'), function (all, id) {
+      var link = links[Number(id)];
+      return (
+        '<a href="' +
+        escapeHtml(link.href) +
+        '" target="_blank" rel="noopener noreferrer">' +
+        applyEmphasis(escapeHtml(link.label)) +
+        '</a>'
+      );
+    });
+
+    return working.replace(new RegExp(CODE_MARK + '(\\d+)' + CODE_MARK, 'g'), function (all, id) {
+      return codes[Number(id)];
+    });
+  }
+
+  var FENCE_RE = /^```\s*([A-Za-z0-9_+#.-]*)\s*$/;
+  var HEADING_RE = /^(#{1,6})\s+(.*)$/;
+  var RULE_RE = /^ {0,3}([-*_])\s*(?:\1\s*){2,}$/;
+  var QUOTE_RE = /^ {0,3}>\s?(.*)$/;
+  var ITEM_RE = /^([ \t]*)([-*+]|\d+[.)])[ \t]+(.*)$/;
+
+  function startsBlock(line) {
+    return (
+      line.trim() === '' ||
+      FENCE_RE.test(line) ||
+      HEADING_RE.test(line) ||
+      RULE_RE.test(line) ||
+      QUOTE_RE.test(line) ||
+      ITEM_RE.test(line)
+    );
+  }
+
+  function buildList(items, start, level, ordered) {
+    var html = ordered ? '<ol>' : '<ul>';
+    var i = start;
+    while (i < items.length) {
+      var item = items[i];
+      if (item.indent < level) break;
+      if (item.indent > level) {
+        var nested = buildList(items, i, item.indent, item.ordered);
+        if (html.slice(-5) === '</li>') html = html.slice(0, -5) + nested.html + '</li>';
+        else html += nested.html;
+        i = nested.next;
+        continue;
+      }
+      if (item.ordered !== ordered) break;
+
+      var task = item.content.match(/^\[([ xX])\]\s*(.*)$/);
+      if (task) {
+        var box = task[1] === ' ' ? '<input type="checkbox" disabled>' : '<input type="checkbox" checked disabled>';
+        html += '<li class="task">' + box + ' ' + renderInline(task[2]) + '</li>';
+      } else {
+        html += '<li>' + renderInline(item.content) + '</li>';
+      }
+      i += 1;
+    }
+    return { html: html + (ordered ? '</ol>' : '</ul>'), next: i };
+  }
+
+  function renderMarkdown(source) {
+    var lines = asString(source).replace(/\r\n?/g, '\n').split('\n');
+    var blocks = [];
+    var i = 0;
+
+    while (i < lines.length) {
+      var line = lines[i];
+
+      if (line.trim() === '') {
+        i += 1;
+        continue;
+      }
+
+      var fence = line.match(FENCE_RE);
+      if (fence) {
+        var code = [];
+        i += 1;
+        while (i < lines.length && !FENCE_RE.test(lines[i])) {
+          code.push(lines[i]);
+          i += 1;
+        }
+        if (i < lines.length) i += 1; // consume the closing fence
+        var language = fence[1] ? ' class="language-' + escapeHtml(fence[1]) + '"' : '';
+        blocks.push('<pre><code' + language + '>' + escapeHtml(code.join('\n')) + '</code></pre>');
+        continue;
+      }
+
+      if (RULE_RE.test(line)) {
+        blocks.push('<hr>');
+        i += 1;
+        continue;
+      }
+
+      var heading = line.match(HEADING_RE);
+      if (heading) {
+        var level = heading[1].length;
+        blocks.push('<h' + level + '>' + renderInline(heading[2].trim()) + '</h' + level + '>');
+        i += 1;
+        continue;
+      }
+
+      if (QUOTE_RE.test(line)) {
+        var quoted = [];
+        while (i < lines.length && QUOTE_RE.test(lines[i])) {
+          quoted.push(lines[i].match(QUOTE_RE)[1]);
+          i += 1;
+        }
+        blocks.push('<blockquote>' + renderMarkdown(quoted.join('\n')) + '</blockquote>');
+        continue;
+      }
+
+      if (ITEM_RE.test(line)) {
+        var items = [];
+        while (i < lines.length) {
+          var item = lines[i].match(ITEM_RE);
+          if (!item) break;
+          items.push({
+            indent: item[1].replace(/\t/g, '  ').length,
+            ordered: /\d/.test(item[2]),
+            content: item[3],
+          });
+          i += 1;
+        }
+        blocks.push(buildList(items, 0, items[0].indent, items[0].ordered).html);
+        continue;
+      }
+
+      var paragraph = [];
+      while (i < lines.length && !startsBlock(lines[i])) {
+        paragraph.push(lines[i].trim());
+        i += 1;
+      }
+      blocks.push('<p>' + paragraph.map(renderInline).join('<br>') + '</p>');
+    }
+
+    return blocks.join('\n');
+  }
+
+  var markdown = {
+    render: renderMarkdown,
+    renderInline: renderInline,
+    escapeHtml: escapeHtml,
+    safeUrl: safeUrl,
+  };
+
+  /* ---------------------------------------------------------------- palette */
+
+  var WORD_BOUNDARY = /[\s\-_/:.()]/;
+
+  function fuzzy(query, candidate) {
+    var needle = asString(query).toLowerCase();
+    var haystack = asString(candidate);
+    if (!needle) return { match: true, score: 0, indexes: [] };
+
+    var lower = haystack.toLowerCase();
+    var indexes = [];
+    var score = 0;
+    var cursor = 0;
+    var previous = -2;
+
+    for (var i = 0; i < needle.length; i += 1) {
+      var found = lower.indexOf(needle.charAt(i), cursor);
+      if (found === -1) return { match: false, score: 0, indexes: [] };
+      score += 1;
+      if (found === previous + 1) score += 5;
+      else if (found === 0 || WORD_BOUNDARY.test(haystack.charAt(found - 1))) score += 3;
+      indexes.push(found);
+      previous = found;
+      cursor = found + 1;
+    }
+
+    if (indexes[0] === 0) score += 6;
+    return { match: true, score: score - indexes[0] * 0.1, indexes: indexes };
+  }
+
+  function rank(items, query, options) {
+    var limit = Number(options && options.limit);
+    var results = [];
+
+    (items || []).forEach(function (item, order) {
+      var titleMatch = fuzzy(query, item.title);
+      var score = titleMatch.match ? titleMatch.score : -Infinity;
+      var indexes = titleMatch.match ? titleMatch.indexes : [];
+
+      (item.keywords || []).forEach(function (keyword) {
+        var keywordMatch = fuzzy(query, keyword);
+        if (keywordMatch.match && keywordMatch.score - 2 > score) {
+          score = keywordMatch.score - 2;
+          if (!titleMatch.match) indexes = [];
+        }
+      });
+
+      if (score === -Infinity) return;
+      results.push({
+        command: item,
+        id: item.id,
+        title: item.title,
+        score: score,
+        indexes: indexes,
+        order: order,
+      });
+    });
+
+    results.sort(function (a, b) {
+      return b.score - a.score || a.order - b.order;
+    });
+    return isFinite(limit) && limit > 0 ? results.slice(0, limit) : results;
+  }
+
+  var palette = { fuzzy: fuzzy, rank: rank };
+
+  /* ------------------------------------------------------------------- keys */
+
+  var KEY_ALIASES = {
+    esc: 'escape',
+    escape: 'escape',
+    del: 'delete',
+    'delete': 'delete',
+    ins: 'insert',
+    space: ' ',
+    spacebar: ' ',
+    up: 'arrowup',
+    down: 'arrowdown',
+    left: 'arrowleft',
+    right: 'arrowright',
+    arrowup: 'arrowup',
+    arrowdown: 'arrowdown',
+    arrowleft: 'arrowleft',
+    arrowright: 'arrowright',
+    'return': 'enter',
+    enter: 'enter',
+    plus: '+',
+    minus: '-',
+  };
+
+  var KEY_LABELS = {
+    escape: 'Esc',
+    arrowup: '↑',
+    arrowdown: '↓',
+    arrowleft: '←',
+    arrowright: '→',
+    ' ': 'Space',
+    'delete': 'Del',
+  };
+
+  function normalizeKeyName(name) {
+    var key = asString(name).toLowerCase();
+    return KEY_ALIASES[key] || key;
+  }
+
+  function parseShortcut(binding) {
+    if (binding && typeof binding === 'object') return binding;
+    var parts = asString(binding)
+      .split('+')
+      .map(function (part) {
+        return part.trim();
+      })
+      .filter(function (part) {
+        return part !== '';
+      });
+    if (!parts.length) parts = ['+'];
+
+    var descriptor = { mod: false, ctrl: false, alt: false, shift: false, meta: false, key: '' };
+    parts.forEach(function (part, index) {
+      var lower = part.toLowerCase();
+      var isLast = index === parts.length - 1;
+      if (!isLast || parts.length === 1) {
+        if (lower === 'mod' || lower === 'cmdorctrl') return void (descriptor.mod = true);
+        if (lower === 'ctrl' || lower === 'control') return void (descriptor.ctrl = true);
+        if (lower === 'alt' || lower === 'option') return void (descriptor.alt = true);
+        if (lower === 'shift') return void (descriptor.shift = true);
+        if (lower === 'meta' || lower === 'cmd' || lower === 'command') return void (descriptor.meta = true);
+      }
+      if (isLast) descriptor.key = normalizeKeyName(part);
+    });
+    return descriptor;
+  }
+
+  function matchesShortcut(binding, event, options) {
+    var descriptor = parseShortcut(binding);
+    var mac = !!(options && options.mac);
+    var wantsCtrl = descriptor.ctrl || (descriptor.mod && !mac);
+    var wantsMeta = descriptor.meta || (descriptor.mod && mac);
+
+    if (!!event.ctrlKey !== !!wantsCtrl) return false;
+    if (!!event.metaKey !== !!wantsMeta) return false;
+    if (!!event.altKey !== !!descriptor.alt) return false;
+
+    var expected = descriptor.key;
+    var namedOrLetter = expected.length > 1 || /^[a-z]$/.test(expected);
+    if (namedOrLetter && !!event.shiftKey !== !!descriptor.shift) return false;
+
+    var pressed = asString(event.key).toLowerCase();
+    return pressed === expected || KEY_ALIASES[pressed] === expected;
+  }
+
+  function keyLabel(key, mac) {
+    if (KEY_LABELS[key]) return KEY_LABELS[key];
+    if (key === 'enter') return mac ? '↩' : 'Enter';
+    if (key === 'backspace') return mac ? '⌫' : 'Backspace';
+    if (/^f\d{1,2}$/.test(key)) return key.toUpperCase();
+    if (key.length === 1) return key.toUpperCase();
+    return key.charAt(0).toUpperCase() + key.slice(1);
+  }
+
+  function formatShortcut(binding, options) {
+    var descriptor = parseShortcut(binding);
+    var mac = !!(options && options.mac);
+
+    if (mac) {
+      var symbols = '';
+      if (descriptor.ctrl) symbols += '⌃';
+      if (descriptor.alt) symbols += '⌥';
+      if (descriptor.shift) symbols += '⇧';
+      if (descriptor.meta || descriptor.mod) symbols += '⌘';
+      return symbols + keyLabel(descriptor.key, mac);
+    }
+
+    var parts = [];
+    if (descriptor.ctrl || descriptor.mod) parts.push('Ctrl');
+    if (descriptor.alt) parts.push('Alt');
+    if (descriptor.shift) parts.push('Shift');
+    if (descriptor.meta) parts.push('Meta');
+    parts.push(keyLabel(descriptor.key, mac));
+    return parts.join('+');
+  }
+
+  var keys = {
+    parse: parseShortcut,
+    matches: matchesShortcut,
+    format: formatShortcut,
+  };
+
+  /* ---------------------------------------------------------------- exports */
+
+  root.NotepadCore = {
+    VERSION: VERSION,
+    text: text,
+    edit: edit,
+    search: search,
+    format: format,
+    notes: notes,
+    settings: settings,
+    storage: storage,
+    history: history,
+    markdown: markdown,
+    palette: palette,
+    keys: keys,
+  };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+</script>
+<script id="notepad-ui">
+/*
+ * Notepad UI — everything that touches the DOM.
+ *
+ * All logic worth testing in isolation lives in the `notepad-core` block above;
+ * this layer wires it to elements, storage and the keyboard. It is covered by
+ * the Playwright tests in test/e2e.
+ */
+(function () {
+  'use strict';
+
+  var core = window.NotepadCore;
+  var text = core.text;
+  var edit = core.edit;
+  var search = core.search;
+  var notes = core.notes;
+  var settingsApi = core.settings;
+  var storage = core.storage;
+  var historyApi = core.history;
+  var markdown = core.markdown;
+  var paletteApi = core.palette;
+  var keys = core.keys;
+  var format = core.format;
+
+  var STORAGE_KEY = 'notepad.state.v1';
+  var SAVE_DELAY = 400;
+  var LIST_DELAY = 350;
+  var PREVIEW_DELAY = 120;
+  var INDENT_UNIT = '  ';
+  var IS_MAC = /mac|iphone|ipad|ipod/i.test(
+    (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent
+  );
+
+  /* ------------------------------------------------------------- elements */
+
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+  var ui = {
+    workspace: $('workspace'),
+    scrim: $('scrim'),
+    toggleSidebar: $('toggle-sidebar'),
+    activeTitle: $('active-title'),
+    newNote: $('new-note'),
+    emptyNew: $('empty-new'),
+    toggleFind: $('toggle-find'),
+    togglePreview: $('toggle-preview'),
+    downloadNote: $('download-note'),
+    openPalette: $('open-palette'),
+    openSettings: $('open-settings'),
+    noteSearch: $('note-search'),
+    sortMode: $('sort-mode'),
+    noteList: $('note-list'),
+    sidebarEmpty: $('sidebar-empty'),
+    noteCount: $('note-count'),
+    importNotes: $('import-notes'),
+    exportNotes: $('export-notes'),
+    findbar: $('findbar'),
+    findInput: $('find-input'),
+    findCase: $('find-case'),
+    findWord: $('find-word'),
+    findRegex: $('find-regex'),
+    findPrev: $('find-prev'),
+    findNext: $('find-next'),
+    findStatus: $('find-status'),
+    replaceInput: $('replace-input'),
+    replaceOne: $('replace-one'),
+    replaceAll: $('replace-all'),
+    findClose: $('find-close'),
+    panes: $('panes'),
+    editorPane: $('editor-pane'),
+    gutter: $('gutter'),
+    editor: $('editor'),
+    preview: $('preview'),
+    emptyState: $('empty-state'),
+    emptyTitle: $('empty-title'),
+    emptyText: $('empty-text'),
+    statusPosition: $('status-position'),
+    statusCounts: $('status-counts'),
+    statusStats: $('status-stats'),
+    statusWarning: $('status-warning'),
+    statusSave: $('status-save'),
+    settingsDialog: $('settings-dialog'),
+    settingTheme: $('setting-theme'),
+    settingFont: $('setting-font'),
+    settingSize: $('setting-size'),
+    settingSizeOut: $('setting-size-out'),
+    settingWrap: $('setting-wrap'),
+    settingNumbers: $('setting-numbers'),
+    settingNumbersHint: $('setting-numbers-hint'),
+    settingSpell: $('setting-spell'),
+    deleteEverything: $('delete-everything'),
+    statsDialog: $('stats-dialog'),
+    statsGrid: $('stats-grid'),
+    shortcutsDialog: $('shortcuts-dialog'),
+    shortcutsBody: $('shortcuts-body'),
+    paletteDialog: $('palette-dialog'),
+    paletteInput: $('palette-input'),
+    paletteList: $('palette-list'),
+    paletteEmpty: $('palette-empty'),
+    promptDialog: $('prompt-dialog'),
+    promptTitle: $('prompt-title'),
+    promptLabel: $('prompt-label'),
+    promptHint: $('prompt-hint'),
+    promptInput: $('prompt-input'),
+    promptCancel: $('prompt-cancel'),
+    confirmDialog: $('confirm-dialog'),
+    confirmTitle: $('confirm-title'),
+    confirmText: $('confirm-text'),
+    confirmOk: $('confirm-ok'),
+    toasts: $('toasts'),
+    dropzone: $('dropzone'),
+    printArea: $('print-area'),
+    fileInput: $('file-input'),
+  };
+
+  /* ---------------------------------------------------------------- state */
+
+  var state = {
+    notes: [],
+    activeId: null,
+    settings: settingsApi.normalize(),
+    query: '',
+    storageAvailable: true,
+    savedAt: 0,
+    saving: false,
+  };
+
+  var histories = Object.create(null);
+  var carets = Object.create(null);
+  var findState = { matches: [], index: -1, error: '' };
+  var timers = { save: 0, list: 0, preview: 0, clock: 0 };
+  var dragDepth = 0;
+
+  /* ------------------------------------------------------------- storage */
+
+  function storageFailed(error) {
+    if (!state.storageAvailable) return;
+    state.storageAvailable = false;
+    ui.statusWarning.hidden = false;
+    ui.statusWarning.textContent = 'Not saving — this browser blocked local storage';
+    ui.statusWarning.title = String((error && error.message) || error || '');
+  }
+
+  function readStored() {
+    try {
+      return window.localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+      storageFailed(error);
+      return null;
+    }
+  }
+
+  function writeStored(value) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, value);
+      return true;
+    } catch (error) {
+      storageFailed(error);
+      return false;
+    }
+  }
+
+  function scheduleSave() {
+    state.saving = true;
+    renderSaveStatus();
+    window.clearTimeout(timers.save);
+    timers.save = window.setTimeout(saveNow, SAVE_DELAY);
+  }
+
+  function saveNow() {
+    window.clearTimeout(timers.save);
+    timers.save = 0;
+    if (!state.saving) return;
+    var payload = storage.serialize({
+      notes: state.notes,
+      settings: state.settings,
+      activeId: state.activeId,
+      now: Date.now(),
+    });
+    if (writeStored(payload)) {
+      state.savedAt = Date.now();
+      state.saving = false;
+    }
+    renderSaveStatus();
+  }
+
+  /* --------------------------------------------------------------- notes */
+
+  function activeNote() {
+    for (var i = 0; i < state.notes.length; i += 1) {
+      if (state.notes[i].id === state.activeId) return state.notes[i];
+    }
+    return null;
+  }
+
+  function replaceNote(next) {
+    state.notes = state.notes.map(function (note) {
+      return note.id === next.id ? next : note;
+    });
+  }
+
+  function visibleNotes() {
+    return notes.sort(notes.filter(state.notes, state.query), state.settings.sortMode);
+  }
+
+  function patchActive(patch) {
+    var note = activeNote();
+    if (!note) return null;
+    var next = notes.update(note, patch, Date.now());
+    if (next === note) return note;
+    replaceNote(next);
+    scheduleSave();
+    // The row of the note being edited refreshes straight away so its title
+    // follows the first line; re-sorting the whole list can wait for a pause.
+    refreshActiveRow();
+    scheduleList();
+    renderActiveTitle();
+    return next;
+  }
+
+  function newNote(options) {
+    var config = options || {};
+    var note = notes.create({ body: config.body || '', title: config.title || '', now: Date.now() });
+    state.notes = [note].concat(state.notes);
+    state.activeId = note.id;
+    histories[note.id] = historyApi.create(
+      { value: note.body, selectionStart: note.body.length, selectionEnd: note.body.length },
+      { limit: 300 }
+    );
+    state.query = '';
+    ui.noteSearch.value = '';
+    scheduleSave();
+    render();
+    if (!config.quiet) focusEditor();
+    return note;
+  }
+
+  var NARROW = '(max-width: 720px)';
+
+  function isNarrow() {
+    return window.matchMedia && window.matchMedia(NARROW).matches;
+  }
+
+  function selectNote(id, options) {
+    if (isNarrow() && state.settings.sidebarOpen) setSidebarOpen(false);
+    if (id === state.activeId) {
+      if (!(options && options.quiet)) focusEditor();
+      return;
+    }
+    rememberCaret();
+    state.activeId = id;
+    scheduleSave();
+    render();
+    if (!(options && options.quiet)) focusEditor();
+  }
+
+  function deleteNote(id) {
+    var index = -1;
+    for (var i = 0; i < state.notes.length; i += 1) {
+      if (state.notes[i].id === id) index = i;
+    }
+    if (index === -1) return;
+
+    var removed = state.notes[index];
+    var ordered = visibleNotes();
+    var nextId = notes.neighbourId(ordered, id);
+    state.notes = state.notes.filter(function (note) {
+      return note.id !== id;
+    });
+    delete histories[id];
+    delete carets[id];
+    if (state.activeId === id) state.activeId = nextId;
+    scheduleSave();
+    render();
+
+    showToast('Deleted “' + notes.displayTitle(removed) + '”', {
+      timeout: 9000,
+      action: {
+        label: 'Undo',
+        run: function () {
+          var restored = state.notes.slice();
+          restored.splice(Math.min(index, restored.length), 0, removed);
+          state.notes = restored;
+          state.activeId = removed.id;
+          scheduleSave();
+          render();
+          focusEditor();
+        },
+      },
+    });
+  }
+
+  /* -------------------------------------------------------------- editor */
+
+  function editorState() {
+    return {
+      value: ui.editor.value,
+      selectionStart: ui.editor.selectionStart,
+      selectionEnd: ui.editor.selectionEnd,
+    };
+  }
+
+  function historyFor(note) {
+    if (!histories[note.id]) {
+      histories[note.id] = historyApi.create(
+        { value: note.body, selectionStart: 0, selectionEnd: 0 },
+        { limit: 300 }
+      );
+    }
+    return histories[note.id];
+  }
+
+  function rememberCaret() {
+    var note = activeNote();
+    if (!note) return;
+    carets[note.id] = {
+      selectionStart: ui.editor.selectionStart,
+      selectionEnd: ui.editor.selectionEnd,
+      scrollTop: ui.editor.scrollTop,
+    };
+  }
+
+  function focusEditor() {
+    if (!activeNote()) return;
+    ui.editor.focus({ preventScroll: true });
+  }
+
+  /** Applies a pure editor transform, keeping history, storage and UI in step. */
+  function applyEditorState(next, label) {
+    var note = activeNote();
+    if (!note) return;
+    ui.editor.value = next.value;
+    ui.editor.setSelectionRange(next.selectionStart, next.selectionEnd);
+    patchActive({ body: next.value });
+    historyFor(note).push(next, { label: label || 'edit', time: Date.now() });
+    afterEditorChange();
+  }
+
+  function runEditOp(operate, label) {
+    if (!activeNote()) return;
+    var before = editorState();
+    var after = operate(before);
+    if (!after || after.value === before.value) {
+      if (after) ui.editor.setSelectionRange(after.selectionStart, after.selectionEnd);
+      return;
+    }
+    applyEditorState(after, label);
+    focusEditor();
+  }
+
+  function afterEditorChange() {
+    renderStatus();
+    renderGutter();
+    schedulePreview();
+    if (isFindOpen()) refreshMatches({ keepIndex: true });
+  }
+
+  function onEditorInput() {
+    var note = activeNote();
+    if (!note) return;
+    patchActive({ body: ui.editor.value });
+    historyFor(note).push(editorState(), { label: 'type', time: Date.now() });
+    afterEditorChange();
+  }
+
+  function undo() {
+    var note = activeNote();
+    if (!note) return;
+    var snapshot = historyFor(note).undo();
+    if (!snapshot) {
+      showToast('Nothing left to undo');
+      return;
+    }
+    ui.editor.value = snapshot.value;
+    ui.editor.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+    patchActive({ body: snapshot.value });
+    afterEditorChange();
+    focusEditor();
+  }
+
+  function redo() {
+    var note = activeNote();
+    if (!note) return;
+    var snapshot = historyFor(note).redo();
+    if (!snapshot) {
+      showToast('Nothing to redo');
+      return;
+    }
+    ui.editor.value = snapshot.value;
+    ui.editor.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+    patchActive({ body: snapshot.value });
+    afterEditorChange();
+    focusEditor();
+  }
+
+  /* ---------------------------------------------------------------- find */
+
+  function isFindOpen() {
+    return !ui.findbar.hidden;
+  }
+
+  function findOptions() {
+    return {
+      query: ui.findInput.value,
+      caseSensitive: ui.findCase.getAttribute('aria-pressed') === 'true',
+      wholeWord: ui.findWord.getAttribute('aria-pressed') === 'true',
+      regex: ui.findRegex.getAttribute('aria-pressed') === 'true',
+    };
+  }
+
+  function refreshMatches(options) {
+    var compiled = search.compile(findOptions());
+    findState.error = compiled.ok || compiled.empty ? '' : compiled.error;
+    findState.matches = compiled.ok ? search.findMatches(ui.editor.value, findOptions()) : [];
+    if (!(options && options.keepIndex) || findState.index >= findState.matches.length) {
+      findState.index = -1;
+    }
+    renderFindStatus();
+  }
+
+  function renderFindStatus() {
+    var node = ui.findStatus;
+    if (findState.error) {
+      node.textContent = 'Bad pattern';
+      node.title = findState.error;
+      node.setAttribute('data-error', 'true');
+      return;
+    }
+    node.removeAttribute('data-error');
+    node.title = '';
+    if (!ui.findInput.value) {
+      node.textContent = '';
+      return;
+    }
+    if (!findState.matches.length) {
+      node.textContent = 'No results';
+      return;
+    }
+    var position = findState.index >= 0 ? findState.index + 1 : 0;
+    node.textContent = (position ? position + ' of ' : '') + format.plural(findState.matches.length, 'match', 'matches');
+  }
+
+  function gotoMatch(direction) {
+    refreshMatches({ keepIndex: true });
+    if (!findState.matches.length) {
+      renderFindStatus();
+      return;
+    }
+    var caret = direction >= 0 ? ui.editor.selectionEnd : ui.editor.selectionStart;
+    var index = search.activeIndex(findState.matches, caret, direction);
+    selectMatch(index);
+  }
+
+  function selectMatch(index) {
+    var match = findState.matches[index];
+    if (!match) return;
+    findState.index = index;
+    ui.editor.focus({ preventScroll: true });
+    ui.editor.setSelectionRange(match.start, match.end);
+    scrollCaretIntoView();
+    renderFindStatus();
+    renderStatus();
+  }
+
+  function scrollCaretIntoView() {
+    var position = text.positionAt(ui.editor.value, ui.editor.selectionStart);
+    var lineHeight = parseFloat(window.getComputedStyle(ui.editor).lineHeight) || 20;
+    var target = (position.line - 1) * lineHeight;
+    var view = ui.editor.clientHeight;
+    if (target < ui.editor.scrollTop || target > ui.editor.scrollTop + view - lineHeight * 2) {
+      ui.editor.scrollTop = Math.max(0, target - view / 2);
+      syncGutterScroll();
+    }
+  }
+
+  function openFind(options) {
+    ui.findbar.hidden = false;
+    ui.toggleFind.setAttribute('aria-pressed', 'true');
+    var selected = ui.editor.value.slice(ui.editor.selectionStart, ui.editor.selectionEnd);
+    if (selected && selected.indexOf('\n') === -1) ui.findInput.value = selected;
+    refreshMatches();
+    if (options && options.replace) ui.replaceInput.focus();
+    else {
+      ui.findInput.focus();
+      ui.findInput.select();
+    }
+  }
+
+  function closeFind() {
+    ui.findbar.hidden = true;
+    ui.toggleFind.setAttribute('aria-pressed', 'false');
+    findState.matches = [];
+    findState.index = -1;
+    focusEditor();
+  }
+
+  function replaceCurrent() {
+    if (!activeNote()) return;
+    refreshMatches({ keepIndex: true });
+    var match = findState.matches[findState.index];
+    var selection = editorState();
+    var onMatch =
+      match && match.start === selection.selectionStart && match.end === selection.selectionEnd;
+    if (!onMatch) {
+      gotoMatch(1);
+      return;
+    }
+    var result = search.replaceOne(ui.editor.value, match, ui.replaceInput.value, findOptions());
+    applyEditorState(result, 'replace');
+    refreshMatches();
+    gotoMatch(1);
+  }
+
+  function replaceEverything() {
+    if (!activeNote()) return;
+    var result = search.replaceAll(ui.editor.value, findOptions(), ui.replaceInput.value);
+    if (!result.count) {
+      showToast('Nothing to replace');
+      return;
+    }
+    var caret = Math.min(ui.editor.selectionStart, result.value.length);
+    applyEditorState(
+      { value: result.value, selectionStart: caret, selectionEnd: caret },
+      'replace-all'
+    );
+    refreshMatches();
+    showToast(format.plural(result.count, 'replacement') + ' made');
+  }
+
+  /* ------------------------------------------------------------ commands */
+
+  var COMMANDS = [
+    {
+      id: 'note.new',
+      title: 'New note',
+      group: 'Notes',
+      keywords: ['create', 'add'],
+      binding: 'Mod+Alt+N',
+      run: function () {
+        newNote();
+      },
+    },
+    {
+      id: 'note.duplicate',
+      title: 'Duplicate note',
+      group: 'Notes',
+      keywords: ['copy'],
+      run: function () {
+        var note = activeNote();
+        if (!note) return;
+        newNote({ body: note.body, title: note.title ? note.title + ' (copy)' : '' });
+        showToast('Note duplicated');
+      },
+    },
+    {
+      id: 'note.rename',
+      title: 'Rename note',
+      group: 'Notes',
+      keywords: ['title'],
+      binding: 'F2',
+      run: function () {
+        var note = activeNote();
+        if (!note) return;
+        askText({
+          title: 'Rename note',
+          label: 'Note title',
+          value: note.title,
+          hint: 'Leave it empty to use the first line of the note.',
+        }).then(function (value) {
+          if (value === null) return;
+          patchActive({ title: value.trim() });
+          render();
+        });
+      },
+    },
+    {
+      id: 'note.pin',
+      title: 'Pin or unpin note',
+      group: 'Notes',
+      keywords: ['favourite', 'favorite', 'top'],
+      binding: 'Mod+Alt+P',
+      run: function () {
+        var note = activeNote();
+        if (!note) return;
+        patchActive({ pinned: !note.pinned });
+        render();
+        showToast(note.pinned ? 'Unpinned' : 'Pinned to the top');
+      },
+    },
+    {
+      id: 'note.delete',
+      title: 'Delete note',
+      group: 'Notes',
+      keywords: ['remove', 'trash'],
+      run: function () {
+        var note = activeNote();
+        if (!note) return;
+        deleteNote(note.id);
+      },
+    },
+    {
+      id: 'note.next',
+      title: 'Go to next note',
+      group: 'Notes',
+      binding: 'Mod+Alt+ArrowDown',
+      run: function () {
+        stepNote(1);
+      },
+    },
+    {
+      id: 'note.previous',
+      title: 'Go to previous note',
+      group: 'Notes',
+      binding: 'Mod+Alt+ArrowUp',
+      run: function () {
+        stepNote(-1);
+      },
+    },
+    {
+      id: 'note.search',
+      title: 'Search all notes',
+      group: 'Notes',
+      keywords: ['filter', 'list'],
+      binding: 'Mod+Shift+F',
+      run: function () {
+        setSidebarOpen(true);
+        ui.noteSearch.focus();
+        ui.noteSearch.select();
+      },
+    },
+    {
+      id: 'file.save',
+      title: 'Save a copy to a file',
+      group: 'File',
+      keywords: ['download', 'export', 'txt'],
+      binding: 'Mod+S',
+      run: downloadActiveNote,
+    },
+    {
+      id: 'file.open',
+      title: 'Open text files',
+      group: 'File',
+      keywords: ['import', 'upload'],
+      binding: 'Mod+O',
+      run: function () {
+        ui.fileInput.click();
+      },
+    },
+    {
+      id: 'file.exportAll',
+      title: 'Export all notes as a backup',
+      group: 'File',
+      keywords: ['json', 'backup'],
+      run: exportAllNotes,
+    },
+    {
+      id: 'file.importAll',
+      title: 'Import notes from a backup',
+      group: 'File',
+      keywords: ['json', 'restore'],
+      run: function () {
+        ui.fileInput.click();
+      },
+    },
+    {
+      id: 'file.copy',
+      title: 'Copy note to the clipboard',
+      group: 'File',
+      run: copyActiveNote,
+    },
+    {
+      id: 'file.print',
+      title: 'Print note',
+      group: 'File',
+      binding: 'Mod+P',
+      run: printActiveNote,
+    },
+    {
+      id: 'edit.undo',
+      title: 'Undo',
+      group: 'Edit',
+      binding: 'Mod+Z',
+      editorOnly: true,
+      run: undo,
+    },
+    {
+      id: 'edit.redo',
+      title: 'Redo',
+      group: 'Edit',
+      binding: 'Mod+Shift+Z',
+      editorOnly: true,
+      run: redo,
+    },
+    {
+      id: 'edit.redoAlt',
+      title: 'Redo',
+      group: 'Edit',
+      binding: 'Mod+Y',
+      editorOnly: true,
+      hidden: true,
+      run: redo,
+    },
+    {
+      id: 'edit.find',
+      title: 'Find',
+      group: 'Edit',
+      keywords: ['search'],
+      binding: 'Mod+F',
+      run: function () {
+        openFind();
+      },
+    },
+    {
+      id: 'edit.findNext',
+      title: 'Find next',
+      group: 'Edit',
+      binding: 'F3',
+      run: function () {
+        if (!isFindOpen()) openFind();
+        else gotoMatch(1);
+      },
+    },
+    {
+      id: 'edit.findPrevious',
+      title: 'Find previous',
+      group: 'Edit',
+      binding: 'Shift+F3',
+      run: function () {
+        if (!isFindOpen()) openFind();
+        else gotoMatch(-1);
+      },
+    },
+    {
+      id: 'edit.replace',
+      title: 'Find and replace',
+      group: 'Edit',
+      binding: 'Mod+H',
+      run: function () {
+        openFind({ replace: true });
+      },
+    },
+    {
+      id: 'edit.gotoLine',
+      title: 'Go to line…',
+      group: 'Edit',
+      binding: 'Mod+G',
+      run: function () {
+        var position = text.positionAt(ui.editor.value, ui.editor.selectionStart);
+        askText({
+          title: 'Go to line',
+          label: 'Line number',
+          value: String(position.line),
+          type: 'number',
+          hint: 'This note has ' + format.plural(text.lineCount(ui.editor.value), 'line') + '.',
+        }).then(function (value) {
+          if (value === null) return;
+          var line = Number(value);
+          if (!isFinite(line)) return;
+          var index = text.indexAt(ui.editor.value, line, 1);
+          ui.editor.focus();
+          ui.editor.setSelectionRange(index, index);
+          scrollCaretIntoView();
+          renderStatus();
+        });
+      },
+    },
+    {
+      id: 'edit.insertDate',
+      title: 'Insert date and time',
+      group: 'Edit',
+      keywords: ['now', 'timestamp'],
+      binding: 'F5',
+      run: function () {
+        runEditOp(function (before) {
+          return edit.insert(before, format.timestamp(Date.now()));
+        }, 'insert-date');
+      },
+    },
+    {
+      id: 'edit.duplicateLine',
+      title: 'Duplicate line',
+      group: 'Edit',
+      binding: 'Mod+Shift+D',
+      editorOnly: true,
+      run: function () {
+        runEditOp(edit.duplicateLines, 'duplicate-line');
+      },
+    },
+    {
+      id: 'edit.deleteLine',
+      title: 'Delete line',
+      group: 'Edit',
+      binding: 'Mod+Shift+K',
+      editorOnly: true,
+      run: function () {
+        runEditOp(edit.deleteLines, 'delete-line');
+      },
+    },
+    {
+      id: 'edit.moveLineUp',
+      title: 'Move line up',
+      group: 'Edit',
+      binding: 'Alt+ArrowUp',
+      editorOnly: true,
+      run: function () {
+        runEditOp(function (before) {
+          return edit.moveLines(before, -1);
+        }, 'move-line');
+      },
+    },
+    {
+      id: 'edit.moveLineDown',
+      title: 'Move line down',
+      group: 'Edit',
+      binding: 'Alt+ArrowDown',
+      editorOnly: true,
+      run: function () {
+        runEditOp(function (before) {
+          return edit.moveLines(before, 1);
+        }, 'move-line');
+      },
+    },
+    {
+      id: 'edit.sortLines',
+      title: 'Sort lines alphabetically',
+      group: 'Edit',
+      run: function () {
+        runEditOp(edit.sortLines, 'sort-lines');
+      },
+    },
+    {
+      id: 'edit.trim',
+      title: 'Trim trailing whitespace',
+      group: 'Edit',
+      run: function () {
+        runEditOp(function (before) {
+          return {
+            value: edit.trimTrailingWhitespace(before.value),
+            selectionStart: before.selectionStart,
+            selectionEnd: before.selectionEnd,
+          };
+        }, 'trim');
+      },
+    },
+    {
+      id: 'edit.upper',
+      title: 'Upper case selection',
+      group: 'Edit',
+      binding: 'Mod+Shift+U',
+      editorOnly: true,
+      run: function () {
+        runEditOp(function (before) {
+          return edit.transformSelection(before, function (value) {
+            return value.toUpperCase();
+          });
+        }, 'case');
+      },
+    },
+    {
+      id: 'edit.lower',
+      title: 'Lower case selection',
+      group: 'Edit',
+      binding: 'Mod+Shift+L',
+      editorOnly: true,
+      run: function () {
+        runEditOp(function (before) {
+          return edit.transformSelection(before, function (value) {
+            return value.toLowerCase();
+          });
+        }, 'case');
+      },
+    },
+    {
+      id: 'edit.bold',
+      title: 'Bold (markdown)',
+      group: 'Edit',
+      binding: 'Mod+B',
+      editorOnly: true,
+      run: function () {
+        runEditOp(function (before) {
+          return edit.wrap(before, '**');
+        }, 'wrap');
+      },
+    },
+    {
+      id: 'edit.italic',
+      title: 'Italic (markdown)',
+      group: 'Edit',
+      binding: 'Mod+I',
+      editorOnly: true,
+      run: function () {
+        runEditOp(function (before) {
+          return edit.wrap(before, '_');
+        }, 'wrap');
+      },
+    },
+    {
+      id: 'edit.code',
+      title: 'Inline code (markdown)',
+      group: 'Edit',
+      binding: 'Mod+E',
+      editorOnly: true,
+      run: function () {
+        runEditOp(function (before) {
+          return edit.wrap(before, '`');
+        }, 'wrap');
+      },
+    },
+    {
+      id: 'view.sidebar',
+      title: 'Toggle the notes list',
+      group: 'View',
+      keywords: ['sidebar'],
+      binding: 'Mod+\\',
+      run: function () {
+        setSidebarOpen(!state.settings.sidebarOpen);
+      },
+    },
+    {
+      id: 'view.preview',
+      title: 'Toggle markdown preview',
+      group: 'View',
+      keywords: ['render', 'markdown'],
+      binding: 'Mod+Alt+M',
+      run: function () {
+        updateSettings({ previewOpen: !state.settings.previewOpen });
+      },
+    },
+    {
+      id: 'view.wrap',
+      title: 'Toggle word wrap',
+      group: 'View',
+      binding: 'Mod+Alt+W',
+      run: function () {
+        updateSettings({ wordWrap: !state.settings.wordWrap });
+        showToast('Word wrap ' + (state.settings.wordWrap ? 'on' : 'off'));
+      },
+    },
+    {
+      id: 'view.lineNumbers',
+      title: 'Toggle line numbers',
+      group: 'View',
+      binding: 'Mod+Alt+L',
+      run: function () {
+        if (state.settings.wordWrap && !state.settings.lineNumbers) {
+          updateSettings({ wordWrap: false, lineNumbers: true });
+          showToast('Line numbers on, word wrap off');
+          return;
+        }
+        updateSettings({ lineNumbers: !state.settings.lineNumbers });
+      },
+    },
+    {
+      id: 'view.zoomIn',
+      title: 'Increase text size',
+      group: 'View',
+      binding: 'Mod+Alt+=',
+      run: function () {
+        updateSettings({ fontSize: state.settings.fontSize + 1 });
+      },
+    },
+    {
+      id: 'view.zoomOut',
+      title: 'Decrease text size',
+      group: 'View',
+      binding: 'Mod+Alt+-',
+      run: function () {
+        updateSettings({ fontSize: state.settings.fontSize - 1 });
+      },
+    },
+    {
+      id: 'view.zoomReset',
+      title: 'Reset text size',
+      group: 'View',
+      binding: 'Mod+Alt+0',
+      run: function () {
+        updateSettings({ fontSize: settingsApi.DEFAULTS.fontSize });
+      },
+    },
+    {
+      id: 'view.theme',
+      title: 'Switch theme',
+      group: 'View',
+      keywords: ['dark', 'light'],
+      run: function () {
+        var order = settingsApi.THEMES;
+        var next = order[(order.indexOf(state.settings.theme) + 1) % order.length];
+        updateSettings({ theme: next });
+        showToast('Theme: ' + next);
+      },
+    },
+    {
+      id: 'app.stats',
+      title: 'Document statistics',
+      group: 'App',
+      keywords: ['words', 'count'],
+      run: openStats,
+    },
+    {
+      id: 'app.settings',
+      title: 'Settings',
+      group: 'App',
+      keywords: ['preferences', 'options'],
+      binding: 'Mod+,',
+      run: openSettings,
+    },
+    {
+      id: 'app.shortcuts',
+      title: 'Keyboard shortcuts',
+      group: 'App',
+      keywords: ['help', 'keys'],
+      binding: 'Mod+/',
+      run: openShortcuts,
+    },
+    {
+      id: 'app.palette',
+      title: 'Command palette',
+      group: 'App',
+      binding: 'Mod+K',
+      run: openPalette,
+    },
+  ];
+
+  var COMMANDS_BY_ID = {};
+  COMMANDS.forEach(function (command) {
+    COMMANDS_BY_ID[command.id] = command;
+    command.descriptor = command.binding ? keys.parse(command.binding) : null;
+    command.shortcut = command.binding ? keys.format(command.descriptor, { mac: IS_MAC }) : '';
+  });
+
+  /** Adds the real shortcut to a toolbar button's tooltip. */
+  function describeButton(element, commandId, label) {
+    var command = COMMANDS_BY_ID[commandId];
+    var shortcut = command && command.shortcut ? ' (' + command.shortcut + ')' : '';
+    element.title = label + shortcut;
+  }
+
+  function runCommand(id) {
+    var command = COMMANDS_BY_ID[id];
+    if (command) command.run();
+  }
+
+  function stepNote(direction) {
+    var ordered = visibleNotes();
+    if (ordered.length < 2) return;
+    var index = 0;
+    for (var i = 0; i < ordered.length; i += 1) {
+      if (ordered[i].id === state.activeId) index = i;
+    }
+    var next = (index + direction + ordered.length) % ordered.length;
+    selectNote(ordered[next].id);
+  }
+
+  /* -------------------------------------------------------------- file io */
+
+  function saveBlob(name, type, contents) {
+    var blob = new Blob([contents], { type: type });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
+  function looksLikeMarkdown(body) {
+    return /(^|\n)(#{1,6} |[-*+] |\d+[.)] |> |```)/.test(body);
+  }
+
+  function downloadActiveNote() {
+    var note = activeNote();
+    if (!note) return;
+    var extension = looksLikeMarkdown(note.body) ? '.md' : '.txt';
+    saveBlob(format.fileName(notes.displayTitle(note), extension), 'text/plain;charset=utf-8', note.body);
+    showToast('Saved a copy to your downloads');
+  }
+
+  function exportAllNotes() {
+    if (!state.notes.length) {
+      showToast('There is nothing to export yet');
+      return;
+    }
+    var stamp = new Date().toISOString().slice(0, 10);
+    saveBlob(
+      'notepad-backup-' + stamp + '.json',
+      'application/json',
+      storage.exportBundle({ notes: state.notes, settings: state.settings }, { now: Date.now() })
+    );
+    showToast(format.plural(state.notes.length, 'note') + ' exported');
+  }
+
+  function copyActiveNote() {
+    var note = activeNote();
+    if (!note) return;
+    var done = function () {
+      showToast('Note copied to the clipboard');
+    };
+    var failed = function () {
+      showToast('Could not copy — your browser blocked clipboard access', { tone: 'error' });
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(note.body).then(done, failed);
+      return;
+    }
+    ui.editor.select();
+    try {
+      if (document.execCommand('copy')) done();
+      else failed();
+    } catch (error) {
+      failed();
+    }
+  }
+
+  function printActiveNote() {
+    var note = activeNote();
+    if (!note) return;
+    ui.printArea.textContent = '';
+    var heading = document.createElement('h1');
+    heading.textContent = notes.displayTitle(note);
+    var body = document.createElement('div');
+    body.textContent = note.body;
+    ui.printArea.appendChild(heading);
+    ui.printArea.appendChild(body);
+    window.print();
+  }
+
+  function importFiles(fileList) {
+    var files = Array.prototype.slice.call(fileList || []);
+    if (!files.length) return;
+
+    var readers = files.map(function (file) {
+      return file
+        .text()
+        .then(function (contents) {
+          return { file: file, contents: contents };
+        })
+        .catch(function () {
+          return null;
+        });
+    });
+
+    Promise.all(readers).then(function (results) {
+      var added = 0;
+      var failures = 0;
+      var lastId = null;
+
+      results.forEach(function (result) {
+        if (!result) {
+          failures += 1;
+          return;
+        }
+        var isBundle = /\.json$/i.test(result.file.name);
+        if (isBundle) {
+          var bundle = storage.importBundle(result.contents, { existing: state.notes, now: Date.now() });
+          if (!bundle.ok) {
+            failures += 1;
+            return;
+          }
+          state.notes = bundle.notes.concat(state.notes);
+          added += bundle.notes.length;
+          if (bundle.notes.length) lastId = bundle.notes[0].id;
+          bundle.warnings.forEach(function (warning) {
+            showToast(warning, { tone: 'error', timeout: 8000 });
+          });
+          return;
+        }
+        var title = result.file.name.replace(/\.[^.]+$/, '');
+        var note = notes.create({ body: result.contents, title: title, now: Date.now() });
+        state.notes = [note].concat(state.notes);
+        lastId = note.id;
+        added += 1;
+      });
+
+      if (lastId) {
+        state.activeId = lastId;
+        state.query = '';
+        ui.noteSearch.value = '';
+      }
+      scheduleSave();
+      render();
+      if (added) showToast(format.plural(added, 'note') + ' imported');
+      if (failures) showToast(format.plural(failures, 'file') + ' could not be read', { tone: 'error' });
+    });
+  }
+
+  /* ------------------------------------------------------------- dialogs */
+
+  function askText(options) {
+    var config = options || {};
+    return new Promise(function (resolve) {
+      ui.promptTitle.textContent = config.title || 'Enter a value';
+      ui.promptLabel.textContent = config.label || config.title || 'Value';
+      ui.promptHint.textContent = config.hint || '';
+      ui.promptInput.type = config.type || 'text';
+      ui.promptInput.value = config.value === undefined ? '' : String(config.value);
+      ui.promptDialog.returnValue = '';
+
+      function onClose() {
+        ui.promptDialog.removeEventListener('close', onClose);
+        resolve(ui.promptDialog.returnValue === 'ok' ? ui.promptInput.value : null);
+      }
+
+      ui.promptDialog.addEventListener('close', onClose);
+      ui.promptDialog.showModal();
+      ui.promptInput.focus();
+      ui.promptInput.select();
+    });
+  }
+
+  function askConfirm(options) {
+    var config = options || {};
+    return new Promise(function (resolve) {
+      ui.confirmTitle.textContent = config.title || 'Are you sure?';
+      ui.confirmText.textContent = config.text || '';
+      ui.confirmOk.textContent = config.confirmLabel || 'Delete';
+      ui.confirmDialog.returnValue = '';
+
+      function onClose() {
+        ui.confirmDialog.removeEventListener('close', onClose);
+        resolve(ui.confirmDialog.returnValue === 'ok');
+      }
+
+      ui.confirmDialog.addEventListener('close', onClose);
+      ui.confirmDialog.showModal();
+    });
+  }
+
+  function openSettings() {
+    syncSettingsDialog();
+    ui.settingsDialog.showModal();
+  }
+
+  function openStats() {
+    var note = activeNote();
+    var body = note ? note.body : '';
+    var stats = text.stats(body);
+    var rows = [
+      ['Words', format.number(stats.words)],
+      ['Characters', format.number(stats.chars)],
+      ['Without spaces', format.number(stats.charsNoSpaces)],
+      ['Lines', format.number(stats.lines)],
+      ['Sentences', format.number(stats.sentences)],
+      ['Paragraphs', format.number(stats.paragraphs)],
+      ['Reading time', stats.readingTimeMinutes + ' min'],
+      ['Size', format.bytes(new Blob([body]).size)],
+      ['Created', note ? format.timestamp(note.createdAt) : '—'],
+      ['Last edited', note ? format.relativeTime(note.updatedAt, Date.now()) : '—'],
+    ];
+    ui.statsGrid.textContent = '';
+    rows.forEach(function (row) {
+      var wrapper = document.createElement('div');
+      wrapper.className = 'stat';
+      var term = document.createElement('dt');
+      term.textContent = row[0];
+      var value = document.createElement('dd');
+      value.textContent = row[1];
+      wrapper.appendChild(term);
+      wrapper.appendChild(value);
+      ui.statsGrid.appendChild(wrapper);
+    });
+    ui.statsDialog.showModal();
+  }
+
+  function openShortcuts() {
+    ui.shortcutsBody.textContent = '';
+    var groups = [];
+    var byGroup = {};
+    COMMANDS.forEach(function (command) {
+      if (!command.binding || command.hidden) return;
+      if (!byGroup[command.group]) {
+        byGroup[command.group] = [];
+        groups.push(command.group);
+      }
+      byGroup[command.group].push(command);
+    });
+
+    groups.forEach(function (group) {
+      var section = document.createElement('section');
+      section.className = 'shortcut-group';
+      var heading = document.createElement('h3');
+      heading.textContent = group;
+      section.appendChild(heading);
+
+      byGroup[group].forEach(function (command) {
+        var row = document.createElement('div');
+        row.className = 'shortcut-row';
+        var label = document.createElement('span');
+        label.textContent = command.title;
+        var keysWrap = document.createElement('span');
+        keysWrap.className = 'keys';
+        var key = document.createElement('kbd');
+        key.textContent = command.shortcut;
+        keysWrap.appendChild(key);
+        row.appendChild(label);
+        row.appendChild(keysWrap);
+        section.appendChild(row);
+      });
+      ui.shortcutsBody.appendChild(section);
+    });
+
+    var note = document.createElement('p');
+    note.className = 'setting__hint';
+    note.textContent =
+      'Tab and Shift+Tab indent, Enter continues lists, Esc closes panels, and ' +
+      'Esc then Tab moves focus out of the editor.';
+    ui.shortcutsBody.appendChild(note);
+    ui.shortcutsDialog.showModal();
+  }
+
+  /* ------------------------------------------------------------- palette */
+
+  var paletteItems = [];
+  var paletteIndex = 0;
+
+  function openPalette() {
+    ui.paletteInput.value = '';
+    renderPalette();
+    ui.paletteDialog.showModal();
+    ui.paletteInput.focus();
+  }
+
+  function renderPalette() {
+    var candidates = COMMANDS.filter(function (command) {
+      return !command.hidden;
+    });
+    paletteItems = paletteApi.rank(candidates, ui.paletteInput.value, { limit: 50 });
+    paletteIndex = 0;
+    ui.paletteList.textContent = '';
+    ui.paletteEmpty.hidden = paletteItems.length > 0;
+
+    paletteItems.forEach(function (entry, position) {
+      var item = document.createElement('li');
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'palette-item';
+      button.setAttribute('data-active', position === 0 ? 'true' : 'false');
+      button.setAttribute('data-command', entry.command.id);
+
+      var label = document.createElement('span');
+      var title = entry.command.title;
+      var hits = entry.indexes || [];
+      for (var i = 0; i < title.length; i += 1) {
+        var chunk = document.createElement(hits.indexOf(i) === -1 ? 'span' : 'span');
+        if (hits.indexOf(i) !== -1) chunk.className = 'hit';
+        chunk.textContent = title.charAt(i);
+        label.appendChild(chunk);
+      }
+
+      var group = document.createElement('span');
+      group.className = 'group';
+      group.textContent = entry.command.group;
+
+      button.appendChild(label);
+      button.appendChild(group);
+
+      if (entry.command.shortcut) {
+        var keysWrap = document.createElement('span');
+        keysWrap.className = 'keys';
+        var key = document.createElement('kbd');
+        key.textContent = entry.command.shortcut;
+        keysWrap.appendChild(key);
+        button.appendChild(keysWrap);
+      }
+
+      button.addEventListener('click', function () {
+        ui.paletteDialog.close();
+        entry.command.run();
+      });
+
+      item.appendChild(button);
+      ui.paletteList.appendChild(item);
+    });
+  }
+
+  function movePalette(step) {
+    if (!paletteItems.length) return;
+    paletteIndex = (paletteIndex + step + paletteItems.length) % paletteItems.length;
+    var buttons = ui.paletteList.querySelectorAll('.palette-item');
+    for (var i = 0; i < buttons.length; i += 1) {
+      buttons[i].setAttribute('data-active', i === paletteIndex ? 'true' : 'false');
+    }
+    if (buttons[paletteIndex]) buttons[paletteIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  function runPaletteSelection() {
+    var entry = paletteItems[paletteIndex];
+    if (!entry) return;
+    ui.paletteDialog.close();
+    entry.command.run();
+  }
+
+  /* --------------------------------------------------------------- toasts */
+
+  function showToast(message, options) {
+    var config = options || {};
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    if (config.tone) toast.setAttribute('data-tone', config.tone);
+
+    var label = document.createElement('span');
+    label.textContent = message;
+    toast.appendChild(label);
+
+    var timer = 0;
+    function dismiss() {
+      window.clearTimeout(timer);
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }
+
+    if (config.action) {
+      var action = document.createElement('button');
+      action.type = 'button';
+      action.textContent = config.action.label;
+      action.addEventListener('click', function () {
+        dismiss();
+        config.action.run();
+      });
+      toast.appendChild(action);
+    }
+
+    ui.toasts.appendChild(toast);
+    timer = window.setTimeout(dismiss, config.timeout || 3600);
+  }
+
+  /* ------------------------------------------------------------ rendering */
+
+  function render() {
+    applySettings();
+    renderList();
+    renderEditor();
+    renderStatus();
+    renderActiveTitle();
+    renderPreview();
+    renderSaveStatus();
+  }
+
+  function applySettings() {
+    var config = state.settings;
+    var root = document.documentElement;
+
+    if (config.theme === 'system') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', config.theme);
+
+    root.style.setProperty('--editor-font', 'var(--font-' + config.fontFamily + ')');
+    root.style.setProperty('--editor-size', config.fontSize + 'px');
+
+    ui.workspace.setAttribute('data-sidebar', config.sidebarOpen ? 'open' : 'closed');
+    ui.toggleSidebar.setAttribute('aria-expanded', config.sidebarOpen ? 'true' : 'false');
+    ui.editorPane.setAttribute('data-wrap', config.wordWrap ? 'true' : 'false');
+    ui.editor.setAttribute('wrap', config.wordWrap ? 'soft' : 'off');
+    ui.editor.spellcheck = config.spellcheck;
+    ui.panes.setAttribute('data-preview', config.previewOpen ? 'true' : 'false');
+    ui.preview.hidden = !config.previewOpen;
+    ui.togglePreview.setAttribute('aria-pressed', config.previewOpen ? 'true' : 'false');
+    ui.sortMode.value = config.sortMode;
+    renderGutter();
+  }
+
+  function updateSettings(patch) {
+    state.settings = settingsApi.normalize(Object.assign({}, state.settings, patch));
+    scheduleSave();
+    applySettings();
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'sortMode')) renderList();
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'previewOpen')) renderPreview();
+    syncSettingsDialog();
+  }
+
+  function setSidebarOpen(open) {
+    updateSettings({ sidebarOpen: !!open });
+  }
+
+  function syncSettingsDialog() {
+    var config = state.settings;
+    ui.settingTheme.value = config.theme;
+    ui.settingFont.value = config.fontFamily;
+    ui.settingSize.value = String(config.fontSize);
+    ui.settingSizeOut.textContent = config.fontSize + 'px';
+    ui.settingWrap.checked = config.wordWrap;
+    ui.settingNumbers.checked = config.lineNumbers;
+    ui.settingNumbers.disabled = config.wordWrap;
+    ui.settingNumbersHint.textContent = config.wordWrap
+      ? 'Turn word wrap off to line up the numbers.'
+      : 'Shown to the left of the text.';
+    ui.settingSpell.checked = config.spellcheck;
+  }
+
+  function icon(path) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    var shape = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    shape.setAttribute('d', path);
+    svg.appendChild(shape);
+    return svg;
+  }
+
+  var PIN_PATH = 'M12 14.5V21M7.5 14.5h9l-1.1-4.2a3 3 0 0 1 .8-2.9L18 5H6l1.8 2.4a3 3 0 0 1 .8 2.9l-1.1 4.2z';
+  var TRASH_PATH = 'M5 7h14M9 7V5h6v2m-8 0 1 12h8l1-12';
+
+  function renderList() {
+    var ordered = visibleNotes();
+    ui.noteList.textContent = '';
+
+    ordered.forEach(function (note) {
+      var row = document.createElement('li');
+      row.className = 'note-row';
+
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'note-item';
+      button.setAttribute('data-note', note.id);
+      button.setAttribute('aria-current', note.id === state.activeId ? 'true' : 'false');
+
+      var title = document.createElement('span');
+      title.className = 'note-item__title';
+      title.textContent = notes.displayTitle(note);
+
+      var preview = document.createElement('span');
+      preview.className = 'note-item__preview';
+      var snippet = notes.preview(note, 80);
+      preview.textContent = snippet || 'Empty note';
+
+      var meta = document.createElement('span');
+      meta.className = 'note-item__meta';
+      meta.textContent =
+        (note.pinned ? 'Pinned · ' : '') +
+        format.relativeTime(note.updatedAt, Date.now()) +
+        ' · ' +
+        format.plural(text.stats(note.body).words, 'word');
+
+      button.appendChild(title);
+      button.appendChild(preview);
+      button.appendChild(meta);
+      button.addEventListener('click', function () {
+        selectNote(note.id);
+      });
+
+      var actions = document.createElement('span');
+      actions.className = 'note-item__actions';
+
+      var pin = document.createElement('button');
+      pin.type = 'button';
+      pin.className = 'note-item__action';
+      pin.title = note.pinned ? 'Unpin this note' : 'Pin this note';
+      pin.setAttribute('aria-label', pin.title);
+      pin.setAttribute('data-on', note.pinned ? 'true' : 'false');
+      pin.appendChild(icon(PIN_PATH));
+      pin.addEventListener('click', function (event) {
+        event.stopPropagation();
+        var updated = notes.update(note, { pinned: !note.pinned }, Date.now());
+        replaceNote(updated);
+        scheduleSave();
+        renderList();
+      });
+
+      var remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'note-item__action';
+      remove.title = 'Delete this note';
+      remove.setAttribute('aria-label', remove.title);
+      remove.appendChild(icon(TRASH_PATH));
+      remove.addEventListener('click', function (event) {
+        event.stopPropagation();
+        deleteNote(note.id);
+      });
+
+      actions.appendChild(pin);
+      actions.appendChild(remove);
+      row.appendChild(button);
+      row.appendChild(actions);
+      ui.noteList.appendChild(row);
+    });
+
+    var hasNotes = state.notes.length > 0;
+    ui.sidebarEmpty.hidden = ordered.length > 0;
+    ui.sidebarEmpty.textContent = hasNotes ? 'No notes match your search.' : 'No notes yet.';
+    ui.noteCount.textContent = hasNotes
+      ? format.plural(state.notes.length, 'note') + (state.query ? ' · ' + ordered.length + ' shown' : '')
+      : 'No notes';
+
+    ui.emptyState.hidden = hasNotes;
+    if (!hasNotes) {
+      ui.emptyTitle.textContent = 'No notes yet';
+      ui.emptyText.textContent =
+        'Everything you write stays in this browser. Nothing is uploaded anywhere.';
+    }
+  }
+
+  function scheduleList() {
+    window.clearTimeout(timers.list);
+    timers.list = window.setTimeout(renderList, LIST_DELAY);
+  }
+
+  /** Cheap in-place refresh of the row being edited. */
+  function refreshActiveRow() {
+    var note = activeNote();
+    if (!note) return;
+    var row = ui.noteList.querySelector('[data-note="' + note.id + '"]');
+    // No row means the note is filtered out of the list right now; the debounced
+    // full render will catch up.
+    if (!row) return;
+    row.querySelector('.note-item__title').textContent = notes.displayTitle(note);
+    var snippet = notes.preview(note, 80);
+    row.querySelector('.note-item__preview').textContent = snippet || 'Empty note';
+  }
+
+  function renderEditor() {
+    var note = activeNote();
+    ui.editor.disabled = !note;
+    if (!note) {
+      ui.editor.value = '';
+      ui.preview.textContent = '';
+      return;
+    }
+    if (ui.editor.value !== note.body) ui.editor.value = note.body;
+    var caret = carets[note.id];
+    var end = note.body.length;
+    var start = caret ? Math.min(caret.selectionStart, end) : end;
+    var stop = caret ? Math.min(caret.selectionEnd, end) : end;
+    try {
+      ui.editor.setSelectionRange(start, stop);
+    } catch (error) {
+      /* a detached or hidden textarea can refuse this; harmless */
+    }
+    if (caret) ui.editor.scrollTop = caret.scrollTop;
+    renderGutter();
+  }
+
+  function renderActiveTitle() {
+    var note = activeNote();
+    var title = note ? notes.displayTitle(note) : '';
+    ui.activeTitle.textContent = title ? '· ' + title : '';
+    document.title = title ? title + ' — Notepad' : 'Notepad';
+  }
+
+  function renderStatus() {
+    var value = ui.editor.value;
+    var position = text.positionAt(value, ui.editor.selectionStart);
+    var selected = ui.editor.selectionEnd - ui.editor.selectionStart;
+    var stats = text.stats(value);
+
+    ui.statusPosition.textContent =
+      'Ln ' + position.line + ', Col ' + position.column + (selected > 0 ? ' · ' + format.plural(selected, 'char') : '');
+    ui.statusCounts.textContent =
+      format.plural(stats.words, 'word') + ' · ' + format.plural(stats.chars, 'character');
+  }
+
+  function renderSaveStatus() {
+    if (!state.storageAvailable) {
+      ui.statusSave.textContent = 'Changes are not saved';
+      return;
+    }
+    if (state.saving) {
+      ui.statusSave.textContent = 'Saving…';
+      return;
+    }
+    ui.statusSave.textContent = state.savedAt
+      ? 'Saved ' + format.relativeTime(state.savedAt, Date.now())
+      : '';
+  }
+
+  function renderGutter() {
+    var show = state.settings.lineNumbers && !state.settings.wordWrap;
+    ui.gutter.hidden = !show;
+    if (!show) return;
+    var count = text.lineCount(ui.editor.value);
+    if (ui.gutter.dataset.count !== String(count)) {
+      var numbers = [];
+      for (var i = 1; i <= count; i += 1) numbers.push(i);
+      ui.gutter.textContent = numbers.join('\n');
+      ui.gutter.dataset.count = String(count);
+    }
+    syncGutterScroll();
+  }
+
+  function syncGutterScroll() {
+    if (ui.gutter.hidden) return;
+    ui.gutter.scrollTop = ui.editor.scrollTop;
+  }
+
+  function renderPreview() {
+    if (!state.settings.previewOpen) return;
+    ui.preview.innerHTML = markdown.render(ui.editor.value);
+  }
+
+  function schedulePreview() {
+    if (!state.settings.previewOpen) return;
+    window.clearTimeout(timers.preview);
+    timers.preview = window.setTimeout(renderPreview, PREVIEW_DELAY);
+  }
+
+  /* -------------------------------------------------------------- events */
+
+  function isTextField(node) {
+    if (!node) return false;
+    var tag = node.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable;
+  }
+
+  function isBareShortcut(descriptor) {
+    return (
+      !descriptor.mod &&
+      !descriptor.ctrl &&
+      !descriptor.alt &&
+      !descriptor.meta &&
+      descriptor.key.length === 1
+    );
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if (event.defaultPrevented) return;
+    if (document.querySelector('dialog[open]')) return;
+
+    for (var i = 0; i < COMMANDS.length; i += 1) {
+      var command = COMMANDS[i];
+      if (!command.descriptor) continue;
+      if (!keys.matches(command.descriptor, event, { mac: IS_MAC })) continue;
+      var inField = isTextField(event.target);
+      var inEditor = event.target === ui.editor;
+      if (inField && isBareShortcut(command.descriptor)) continue;
+      if (command.editorOnly && inField && !inEditor) continue;
+      event.preventDefault();
+      command.run();
+      return;
+    }
+  });
+
+  ui.editor.addEventListener('input', onEditorInput);
+  ui.editor.addEventListener('scroll', syncGutterScroll);
+  ui.editor.addEventListener('click', renderStatus);
+  ui.editor.addEventListener('keyup', renderStatus);
+  ui.editor.addEventListener('select', renderStatus);
+  ui.editor.addEventListener('blur', rememberCaret);
+
+  // Tab indents, which would otherwise trap keyboard users in the textarea.
+  // Escape then Tab is the conventional way out, so arm that here.
+  var tabMovesFocus = false;
+
+  ui.editor.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      if (isFindOpen()) {
+        event.preventDefault();
+        closeFind();
+        return;
+      }
+      tabMovesFocus = true;
+      return;
+    }
+
+    if (event.key === 'Tab' && tabMovesFocus) {
+      tabMovesFocus = false;
+      return; // let the browser move focus out of the editor
+    }
+    tabMovesFocus = false;
+
+    if (event.key === 'Tab' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      runEditOp(function (before) {
+        return event.shiftKey
+          ? edit.outdent(before, { unit: INDENT_UNIT })
+          : edit.indent(before, { unit: INDENT_UNIT });
+      }, 'indent');
+      return;
+    }
+
+    if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      var before = editorState();
+      var after = edit.applyNewlineIndent(before);
+      var plain = edit.insert(before, '\n');
+      if (after.value === plain.value) return; // let the browser handle it natively
+      event.preventDefault();
+      applyEditorState(after, 'newline');
+    }
+  });
+
+  ui.toggleSidebar.addEventListener('click', function () {
+    setSidebarOpen(!state.settings.sidebarOpen);
+  });
+  ui.scrim.addEventListener('click', function () {
+    setSidebarOpen(false);
+  });
+  ui.newNote.addEventListener('click', function () {
+    newNote();
+  });
+  ui.emptyNew.addEventListener('click', function () {
+    newNote();
+  });
+  ui.toggleFind.addEventListener('click', function () {
+    if (isFindOpen()) closeFind();
+    else openFind();
+  });
+  ui.togglePreview.addEventListener('click', function () {
+    runCommand('view.preview');
+  });
+  ui.downloadNote.addEventListener('click', downloadActiveNote);
+  ui.openPalette.addEventListener('click', openPalette);
+  ui.openSettings.addEventListener('click', openSettings);
+  ui.statusStats.addEventListener('click', openStats);
+  ui.importNotes.addEventListener('click', function () {
+    ui.fileInput.click();
+  });
+  ui.exportNotes.addEventListener('click', exportAllNotes);
+
+  ui.noteSearch.addEventListener('input', function () {
+    state.query = ui.noteSearch.value;
+    renderList();
+  });
+  ui.noteSearch.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      ui.noteSearch.value = '';
+      state.query = '';
+      renderList();
+      focusEditor();
+    }
+    if (event.key === 'Enter') {
+      var first = ui.noteList.querySelector('.note-item');
+      if (first) selectNote(first.getAttribute('data-note'));
+    }
+  });
+
+  ui.sortMode.addEventListener('change', function () {
+    updateSettings({ sortMode: ui.sortMode.value });
+    renderList();
+  });
+
+  ui.noteList.addEventListener('keydown', function (event) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    var items = Array.prototype.slice.call(ui.noteList.querySelectorAll('.note-item'));
+    var index = items.indexOf(document.activeElement);
+    if (index === -1) return;
+    event.preventDefault();
+    var next = items[index + (event.key === 'ArrowDown' ? 1 : -1)];
+    if (next) next.focus();
+  });
+
+  ui.findInput.addEventListener('input', function () {
+    refreshMatches();
+    if (ui.findInput.value) gotoMatch(1);
+  });
+  ui.findInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      gotoMatch(event.shiftKey ? -1 : 1);
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeFind();
+    }
+  });
+  ui.replaceInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      replaceCurrent();
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeFind();
+    }
+  });
+  ui.findPrev.addEventListener('click', function () {
+    gotoMatch(-1);
+  });
+  ui.findNext.addEventListener('click', function () {
+    gotoMatch(1);
+  });
+  ui.replaceOne.addEventListener('click', replaceCurrent);
+  ui.replaceAll.addEventListener('click', replaceEverything);
+  ui.findClose.addEventListener('click', closeFind);
+
+  [ui.findCase, ui.findWord, ui.findRegex].forEach(function (toggle) {
+    toggle.addEventListener('click', function () {
+      var on = toggle.getAttribute('aria-pressed') === 'true';
+      toggle.setAttribute('aria-pressed', on ? 'false' : 'true');
+      refreshMatches();
+      if (ui.findInput.value) gotoMatch(1);
+    });
+  });
+
+  ui.settingTheme.addEventListener('change', function () {
+    updateSettings({ theme: ui.settingTheme.value });
+  });
+  ui.settingFont.addEventListener('change', function () {
+    updateSettings({ fontFamily: ui.settingFont.value });
+  });
+  ui.settingSize.addEventListener('input', function () {
+    updateSettings({ fontSize: Number(ui.settingSize.value) });
+  });
+  ui.settingWrap.addEventListener('change', function () {
+    updateSettings({ wordWrap: ui.settingWrap.checked });
+  });
+  ui.settingNumbers.addEventListener('change', function () {
+    updateSettings({ lineNumbers: ui.settingNumbers.checked });
+  });
+  ui.settingSpell.addEventListener('change', function () {
+    updateSettings({ spellcheck: ui.settingSpell.checked });
+  });
+
+  ui.deleteEverything.addEventListener('click', function () {
+    askConfirm({
+      title: 'Delete all notes?',
+      text:
+        'This removes all ' +
+        format.plural(state.notes.length, 'note') +
+        ' from this browser. Export a backup first if you might want them later.',
+      confirmLabel: 'Delete everything',
+    }).then(function (confirmed) {
+      if (!confirmed) return;
+      if (ui.settingsDialog.open) ui.settingsDialog.close();
+      state.notes = [];
+      state.activeId = null;
+      histories = Object.create(null);
+      carets = Object.create(null);
+      scheduleSave();
+      render();
+      showToast('All notes deleted');
+    });
+  });
+
+  ui.promptCancel.addEventListener('click', function () {
+    ui.promptDialog.close('cancel');
+  });
+
+  ui.paletteInput.addEventListener('input', renderPalette);
+  ui.paletteInput.addEventListener('keydown', function (event) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      movePalette(1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      movePalette(-1);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      runPaletteSelection();
+    }
+  });
+
+  ui.fileInput.addEventListener('change', function () {
+    importFiles(ui.fileInput.files);
+    ui.fileInput.value = '';
+  });
+
+  window.addEventListener('dragenter', function (event) {
+    if (!event.dataTransfer || Array.prototype.indexOf.call(event.dataTransfer.types, 'Files') === -1) return;
+    dragDepth += 1;
+    ui.dropzone.hidden = false;
+  });
+  window.addEventListener('dragover', function (event) {
+    if (!ui.dropzone.hidden) event.preventDefault();
+  });
+  window.addEventListener('dragleave', function () {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) ui.dropzone.hidden = true;
+  });
+  window.addEventListener('drop', function (event) {
+    if (!event.dataTransfer || !event.dataTransfer.files.length) return;
+    event.preventDefault();
+    dragDepth = 0;
+    ui.dropzone.hidden = true;
+    importFiles(event.dataTransfer.files);
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') saveNow();
+  });
+  window.addEventListener('pagehide', saveNow);
+  window.addEventListener('beforeunload', saveNow);
+
+  timers.clock = window.setInterval(function () {
+    renderSaveStatus();
+    // Refreshing the list rebuilds its buttons, so leave it alone while someone
+    // is keyboarding through it.
+    if (state.notes.length && !ui.noteList.contains(document.activeElement)) renderList();
+  }, 30000);
+
+  /* ---------------------------------------------------------------- start */
+
+  function start() {
+    var stored = storage.parse(readStored(), { now: Date.now() });
+    state.notes = stored.notes;
+    state.settings = stored.settings;
+    state.activeId = stored.activeId;
+
+    if (!state.notes.length) {
+      var first = notes.create({ now: Date.now() });
+      state.notes = [first];
+      state.activeId = first.id;
+    }
+    if (stored.notes.length) state.savedAt = Date.now();
+
+    describeButton(ui.newNote, 'note.new', 'New note');
+    describeButton(ui.toggleFind, 'edit.find', 'Find and replace');
+    describeButton(ui.togglePreview, 'view.preview', 'Markdown preview');
+    describeButton(ui.downloadNote, 'file.save', 'Save a copy to a file');
+    describeButton(ui.openPalette, 'app.palette', 'Command palette');
+    describeButton(ui.openSettings, 'app.settings', 'Settings');
+    describeButton(ui.toggleSidebar, 'view.sidebar', 'Notes list');
+
+    render();
+    focusEditor();
+
+    stored.warnings.forEach(function (warning) {
+      showToast(warning, { tone: 'error', timeout: 9000 });
+    });
+
+    window.__notepad = {
+      state: state,
+      commands: COMMANDS,
+      run: runCommand,
+      save: saveNow,
+      storageKey: STORAGE_KEY,
+    };
+  }
+
+  start();
+})();
+</script>
+</body>
+</html>
